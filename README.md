@@ -35,7 +35,9 @@ Traditional pairs trading relies on rolling Ordinary Least Squares (OLS), which 
 ### 2. Stochastic Modeling (Ornstein-Uhlenbeck)
 The resulting spread is modeled continuously as a mean-reverting Ornstein-Uhlenbeck (OU) stochastic differential equation:
 
-$$ dX_t = \theta (\mu - X_t)dt + \sigma dW_t $$
+```math
+dX_t = \theta (\mu - X_t)dt + \sigma dW_t
+```
 
 *   $\theta$: Speed of mean reversion (determines our holding period).
 *   $\sigma dW_t$: The stochastic Wiener process (Brownian motion).
