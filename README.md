@@ -2,6 +2,10 @@
   <h1>📈 StatArbEngine</h1>
   <h3>Quantitative Pairs Trading Infrastructure</h3>
   <p><i>State-Space Kalman Filters, Stochastic Modeling, and Autoregressive Transformers</i></p>
+  
+  <a href="https://statarbengine-fi9c3msqvxy7yebajshazr.streamlit.app/"><img src="https://static.streamlit.io/badges/streamlit_badge_black_white.svg" alt="Open in Streamlit"></a>
+  <br><br>
+
   <img src="https://img.shields.io/badge/Python-3.11-blue?style=for-the-badge&logo=python" />
   <img src="https://img.shields.io/badge/PyTorch-2.0+-red?style=for-the-badge&logo=pytorch" />
   <img src="https://img.shields.io/badge/NumPy-Vectorized-green?style=for-the-badge&logo=numpy" />
@@ -54,13 +58,11 @@ Academic backtests look great until execution friction destroys the PnL. This en
 *   **Bid-Ask Slippage**: Volume-weighted slippage penalties.
 *   **Vectorization**: Pure Pandas/NumPy execution ensuring zero `for`-loop bottlenecks across 100,000+ data points.
 
-## 🚀 Local Execution
-Launch the interactive dashboard to simulate the engine:
+## 🚀 Live Interactive Dashboard
+**You can test the execution logic and visualize the Kalman Filter spread live here:**
+👉 [**Launch StatArbEngine Simulation**](https://statarbengine-fi9c3msqvxy7yebajshazr.streamlit.app/)
 
-```bash
-pip install -r requirements.txt
-streamlit run app.py
-```
+*(Alternatively, run it locally via `streamlit run app.py`)*
 
 ---
 *Disclaimer: This infrastructure is for research and portfolio demonstration purposes only. It is not financial advice.*
