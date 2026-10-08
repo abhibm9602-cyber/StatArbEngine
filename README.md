@@ -55,7 +55,7 @@ To capture short-term anomalies before the OU mean-reversion forces take over, a
 ## 📉 Realistic Vectorized Backtesting (Friction Engine)
 Academic backtests look great until execution friction destroys the PnL. This engine penalizes the theoretical OU signals using a highly realistic execution environment:
 *   **Transaction Costs**: Dynamic basis points (bps) commissions applied to every lot traded.
-*   **Bid-Ask Slippage**: Volume-weighted slippage penalties.
+*   **Bid-Ask Slippage**: Volatility-adjusted slippage penalties.
 *   **Vectorization**: Pure Pandas/NumPy execution ensuring zero `for`-loop bottlenecks across 100,000+ data points.
 
 ## 🚀 Live Interactive Dashboard
