@@ -16,16 +16,20 @@ with st.sidebar:
 
 if run_analysis:
     prices = fetch_data(list(tickers), "2018-01-01", "2024-01-01")
-    coint_score, coint_pval = check_cointegration(prices)
-    spread, hedge_ratios = apply_kalman_filter(prices)
-    adf_pval = check_stationarity(spread)
     
-    st.subheader("Statistical Checks (Full Sample for Dashboard)")
+    # Train/Test Split logic purely for statistical analysis & fitting
+    train_prices = prices.iloc[:int(len(prices)*0.5)]
+    coint_score, coint_pval = check_cointegration(train_prices)
+    
+    spread, hedge_ratios = apply_kalman_filter(prices)
+    train_spread = spread.iloc[50:int(len(spread)*0.5)] # Drop burn-in before OU
+    adf_pval = check_stationarity(train_spread)
+    
+    st.subheader("Statistical Checks (Training Sample Only)")
     cc1, cc2 = st.columns(2)
     with cc1: st.metric("Engle-Granger Cointegration p-value", f"{coint_pval:.4f}")
     with cc2: st.metric("Spread ADF Stationarity p-value", f"{adf_pval:.4f}")
     
-    train_spread = spread.iloc[50:int(len(spread)*0.5)]
     ou_params = fit_ou_process_mle(train_spread.dropna())
     half_life = 252 * np.log(2) / ou_params.kappa if ou_params.kappa > 0 else 0
     
@@ -39,9 +43,9 @@ if run_analysis:
     
     st.subheader("Out-of-Sample Backtest (Vectorized MTM, Next-Open Execution)")
     bc1, bc2, bc3, bc4 = st.columns(4)
-    with bc1: st.metric("OOS MTM PnL", f"${bt.total_return:.2f}")
+    with bc1: st.metric("OOS MTM Log-PnL", f"{bt.total_return:.4f}")
     with bc2: st.metric("Sharpe Ratio (Annualized)", f"{bt.sharpe_ratio:.2f}")
-    with bc3: st.metric("Max Drawdown", f"${bt.max_drawdown:.2f}")
+    with bc3: st.metric("Max Drawdown", f"{bt.max_drawdown:.4f}")
     with bc4: st.metric("Total Trades", f"{bt.num_trades}")
     
     fig_pnl = go.Figure(go.Scatter(x=bt.pnl_curve.index, y=bt.pnl_curve.values, fill="tozeroy", line=dict(color="#10b981")))
