@@ -14,34 +14,32 @@ def fetch_data(tickers: List[str], start_date: str, end_date: str) -> pd.DataFra
     return prices[tickers].dropna()
 
 def check_cointegration(prices: pd.DataFrame) -> Tuple[float, float]:
-    cols = prices.columns
-    score, pvalue, _ = coint(prices[cols[0]], prices[cols[1]])
+    score, pvalue, _ = coint(prices.iloc[:,0], prices.iloc[:,1])
     return score, pvalue
+
+def get_lag1_autocorr(spread: pd.Series) -> float:
+    return spread.autocorr(lag=1)
 
 def check_stationarity(spread: pd.Series) -> float:
     result = adfuller(spread.dropna())
     return result[1] 
 
 def apply_kalman_filter(prices: pd.DataFrame) -> Tuple[pd.Series, pd.Series]:
-    # Use log prices for proper variance scaling (V_e = 1e-3 makes sense on logs)
     log_prices = np.log(prices)
     x = log_prices.iloc[:, 0].values
     y = log_prices.iloc[:, 1].values
     
-    # State: [beta, alpha] (Hedge Ratio and Intercept)
     theta = np.zeros(2)
     P = np.eye(2)
-    
     V_w = (1e-5 / (1 - 1e-5)) * np.eye(2)
     V_e = 1e-3
     
-    hedge_ratios = np.zeros(len(y))
+    hedge_ratios_elasticity = np.zeros(len(y))
     intercepts = np.zeros(len(y))
     
     for t in range(len(y)):
         F = np.array([x[t], 1.0])
         P_prior = P + V_w
-        
         y_hat = np.dot(F, theta)
         e_t = y[t] - y_hat
         
@@ -51,15 +49,32 @@ def apply_kalman_filter(prices: pd.DataFrame) -> Tuple[pd.Series, pd.Series]:
         theta = theta + K_t * e_t
         P = P_prior - np.outer(K_t, F) @ P_prior
         
-        hedge_ratios[t] = theta[0]
+        hedge_ratios_elasticity[t] = theta[0]
         intercepts[t] = theta[1]
         
-    hr_series = pd.Series(hedge_ratios, index=prices.index)
+    hr_elasticity_series = pd.Series(hedge_ratios_elasticity, index=prices.index)
     int_series = pd.Series(intercepts, index=prices.index)
     
-    # Posterior spread includes intercept and uses log prices
-    spread_series = log_prices.iloc[:, 1] - (hr_series * log_prices.iloc[:, 0] + int_series)
-    return spread_series, hr_series
+    spread_series = log_prices.iloc[:, 1] - (hr_elasticity_series * log_prices.iloc[:, 0] + int_series)
+    
+    # Convert elasticity to dollar hedge ratio for the backtester PnL
+    hr_dollar = hr_elasticity_series * (prices.iloc[:, 1] / prices.iloc[:, 0])
+    
+    return spread_series, hr_dollar
+
+def apply_rolling_ols(prices: pd.DataFrame, window: int = 60) -> Tuple[pd.Series, pd.Series]:
+    log_prices = np.log(prices)
+    x = log_prices.iloc[:, 0]
+    y = log_prices.iloc[:, 1]
+    
+    rolling_cov = y.rolling(window).cov(x)
+    rolling_var = x.rolling(window).var()
+    rolling_beta = rolling_cov / rolling_var
+    rolling_alpha = y.rolling(window).mean() - rolling_beta * x.rolling(window).mean()
+    
+    spread = y - (rolling_beta * x + rolling_alpha)
+    hr_dollar = rolling_beta * (prices.iloc[:, 1] / prices.iloc[:, 0])
+    return spread.fillna(0), hr_dollar.fillna(0)
 
 @dataclass
 class OUParams:
@@ -92,11 +107,10 @@ class BacktestResult:
     max_drawdown: float
     num_trades: int
 
-def backtest_vectorized(prices: pd.DataFrame, spread: pd.Series, ou_params: OUParams, hedge_ratios: pd.Series, entry_z: float = 2.0, exit_z: float = 0.5, transaction_bps: float = 5.0, base_slippage_bps: float = 5.0) -> BacktestResult:
+def backtest_vectorized(prices: pd.DataFrame, spread: pd.Series, raw_half_life: float, hedge_ratios: pd.Series, entry_z: float = 2.0, exit_z: float = 0.5, transaction_bps: float = 5.0, base_slippage_bps: float = 5.0) -> BacktestResult:
     
-    # Calculate half-life to dynamically bound the rolling window
-    half_life_days = max(5, int(252 * np.log(2) / ou_params.kappa)) if ou_params.kappa > 0 else 20
-    rolling_window = min(120, max(20, half_life_days * 2))
+    valid_hl = raw_half_life if (raw_half_life > 0 and raw_half_life < 252) else 10.0
+    rolling_window = min(120, max(10, int(valid_hl * 2)))
     
     rolling_mean = spread.rolling(window=rolling_window).mean()
     rolling_std = spread.rolling(window=rolling_window).std()
@@ -109,11 +123,10 @@ def backtest_vectorized(prices: pd.DataFrame, spread: pd.Series, ou_params: OUPa
     signals[(z_scores > -exit_z) & (z_scores < exit_z)] = 0
     target_position = signals.ffill().fillna(0)
     
-    # Strict next-open execution
     actual_position = target_position.shift(2).fillna(0)
     
-    log_prices = np.log(prices)
-    diff_a, diff_b = log_prices.iloc[:, 0].diff(), log_prices.iloc[:, 1].diff()
+    # Dollar PnL uses dollar prices and dollar hedge ratios
+    diff_a, diff_b = prices.iloc[:, 0].diff(), prices.iloc[:, 1].diff()
     daily_spread_pnl = diff_b - (hedge_ratios.shift(2) * diff_a)
     gross_mtm_pnl = actual_position * daily_spread_pnl
     trades = actual_position.diff().fillna(0)
@@ -122,8 +135,7 @@ def backtest_vectorized(prices: pd.DataFrame, spread: pd.Series, ou_params: OUPa
     rolling_vol = rolling_vol.fillna(1.0)
     
     total_friction_bps = (transaction_bps + (base_slippage_bps * rolling_vol)) / 10000.0
-    # Apply friction to the notional dollar value of the trade
-    friction_cost = abs(trades) * total_friction_bps
+    friction_cost = abs(trades) * (prices.iloc[:, 1] + hedge_ratios.shift(2) * prices.iloc[:, 0]) * total_friction_bps
     
     net_daily_pnl = gross_mtm_pnl - friction_cost
     
@@ -144,4 +156,5 @@ PRESET_PAIRS = {
     "ExxonMobil / Chevron": ("XOM", "CVX"),
     "JPMorgan / Bank of America": ("JPM", "BAC"),
     "Google / Meta": ("GOOGL", "META"),
+    "Placebo: Coke / Exxon": ("KO", "XOM")
 }
