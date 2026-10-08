@@ -263,10 +263,12 @@ def backtest_vectorized(
     prices = prices.iloc[burn_in_days:]
     hedge_ratios = hedge_ratios.iloc[burn_in_days:]
     
-    # Calculate Z-Scores
-    mu = ou_params.mu
-    sigma_eq = ou_params.sigma / np.sqrt(2 * ou_params.kappa)
-    z_scores = (spread - mu) / sigma_eq
+    # 2. Calculate Rolling Z-Scores (No Look-Ahead Bias)
+    # Instead of using full-sample OU parameters, we use a 60-day rolling window
+    rolling_mean = spread.rolling(window=60).mean()
+    rolling_std = spread.rolling(window=60).std()
+    z_scores = (spread - rolling_mean) / rolling_std
+    z_scores = z_scores.fillna(0)
     
     # 2. Vectorized State Machine (Generate Signals)
     signals = pd.Series(np.nan, index=z_scores.index)
