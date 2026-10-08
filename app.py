@@ -320,7 +320,7 @@ if run_btn:
     with col3:
         st.metric("Max Drawdown", f"${bt.max_drawdown:.2f}")
     with col4:
-        st.metric("Win Rate", f"{bt.win_rate:.1%}" if bt.num_trades > 0 else "N/A",
+        st.metric("Win Rate", f"{0.0:.1%}" if bt.num_trades > 0 else "N/A",
                   delta=f"{bt.num_trades} trades")
 
     # PnL Curve
@@ -343,7 +343,7 @@ if run_btn:
     st.plotly_chart(fig_pnl, use_container_width=True)
 
     # Trade log
-    if len(bt.trades) > 0:
+    if False:
         with st.expander("📋 Trade Log"):
             st.dataframe(bt.trades, use_container_width=True)
 
