@@ -23,8 +23,8 @@ from engine import (
     fetch_pair_data,
     compute_spread,
     fit_ou_process,
-    SpreadPredictor,
-    TransformerSpreadPredictor,
+    CausalTransformer,
+    CausalTransformer,
     prepare_sequences,
     train_model,
     backtest_ou_strategy,
@@ -122,7 +122,7 @@ with st.sidebar:
     end_date = st.date_input("End Date", value=pd.to_datetime("2026-09-30"))
 
     st.subheader("🧠 PyTorch Model")
-    model_type = st.radio("Architecture", ["MLP (SpreadPredictor)", "Transformer (Self-Attention)"])
+    model_type = st.radio("Architecture", ["MLP (CausalTransformer)", "Transformer (Self-Attention)"])
     context_length = st.slider("Context Window (days)", 5, 60, 20)
     epochs = st.slider("Training Epochs", 20, 200, 80)
 
@@ -213,7 +213,7 @@ if run_btn:
     st.header("2️⃣ Ornstein-Uhlenbeck Process — Maximum Likelihood Estimation")
 
     with st.spinner("Fitting OU stochastic differential equation via MLE..."):
-        ou_params = fit_ou_process(spread_result.spread)
+        ou_params = fit_ou_process_mle(spread_result.spread)
 
     # Display the SDE
     st.markdown("#### The Stochastic Differential Equation (SDE)")
@@ -227,7 +227,7 @@ if run_btn:
     with col3:
         st.metric("σ (Volatility)", f"{ou_params.sigma:.4f}")
     with col4:
-        st.metric("Half-Life (OU)", f"{ou_params.half_life:.1f} days")
+        st.metric("Half-Life (OU)", f"{(np.log(2)/ou_params.kappa):.1f} days")
 
     st.info(
         "**Physics Analogy:** This is the Langevin equation for a Brownian particle "
@@ -242,16 +242,16 @@ if run_btn:
     st.header("3️⃣ PyTorch Autoregressive Spread Prediction")
 
     with st.spinner("Preparing sequences & training model..."):
-        train_loader, X_train, X_test, y_train, y_test, scaler = prepare_sequences(
+        train_loader, X_train, X_test, y_train, y_test, scaler = prepare_transformer_data(
             spread_result.spread, context_length=context_length
         )
 
         if "Transformer" in model_type:
-            model = TransformerSpreadPredictor(context_length=context_length)
+            model = CausalTransformer(context_length=context_length)
             st.info("Using **Transformer (Self-Attention)** architecture — mini-GPT for time series.", icon="🤖")
         else:
-            model = SpreadPredictor(context_length=context_length)
-            st.info("Using **MLP (SpreadPredictor)** architecture.", icon="🤖")
+            model = CausalTransformer(context_length=context_length)
+            st.info("Using **MLP (CausalTransformer)** architecture.", icon="🤖")
 
         losses = train_model(model, train_loader, epochs=epochs)
 
@@ -302,12 +302,12 @@ if run_btn:
     st.header("4️⃣ Backtest — Pairs Trading Strategy")
 
     with st.spinner("Running backtest..."):
-        bt = backtest_ou_strategy(
+        bt = backtest_vectorized(
             prices, spread_result.spread, ou_params,
             entry_z=entry_z, exit_z=exit_z,
             hedge_ratios=spread_result.hedge_ratio,
             transaction_bps=transaction_bps,
-            slippage_bps=slippage_bps,
+            base_slippage_bps=slippage_bps,
         )
 
     # Metrics
