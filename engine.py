@@ -14,7 +14,8 @@ def fetch_data(tickers: List[str], start_date: str, end_date: str) -> pd.DataFra
     return prices[tickers].dropna()
 
 def check_cointegration(prices: pd.DataFrame) -> Tuple[float, float]:
-    score, pvalue, _ = coint(prices.iloc[:,0], prices.iloc[:,1])
+    log_prices = np.log(prices)
+    score, pvalue, _ = coint(log_prices.iloc[:,0], log_prices.iloc[:,1])
     return score, pvalue
 
 def get_lag1_autocorr(spread: pd.Series) -> float:
@@ -56,8 +57,6 @@ def apply_kalman_filter(prices: pd.DataFrame) -> Tuple[pd.Series, pd.Series]:
     int_series = pd.Series(intercepts, index=prices.index)
     
     spread_series = log_prices.iloc[:, 1] - (hr_elasticity_series * log_prices.iloc[:, 0] + int_series)
-    
-    # Convert elasticity to dollar hedge ratio for the backtester PnL
     hr_dollar = hr_elasticity_series * (prices.iloc[:, 1] / prices.iloc[:, 0])
     
     return spread_series, hr_dollar
@@ -107,8 +106,9 @@ class BacktestResult:
     max_drawdown: float
     num_trades: int
 
-def backtest_vectorized(prices: pd.DataFrame, spread: pd.Series, raw_half_life: float, hedge_ratios: pd.Series, entry_z: float = 2.0, exit_z: float = 0.5, transaction_bps: float = 5.0, base_slippage_bps: float = 5.0) -> BacktestResult:
+def backtest_vectorized(prices: pd.DataFrame, spread: pd.Series, raw_half_life: float, hedge_ratios: pd.Series, entry_z: float = 2.0, exit_z: float = 0.5, transaction_bps: float = 5.0, base_slippage_bps: float = 5.0, oos_start_date: str = "2024-01-01") -> BacktestResult:
     
+    # Cap window between 10 and 120 days for safety
     valid_hl = raw_half_life if (raw_half_life > 0 and raw_half_life < 252) else 10.0
     rolling_window = min(120, max(10, int(valid_hl * 2)))
     
@@ -123,9 +123,9 @@ def backtest_vectorized(prices: pd.DataFrame, spread: pd.Series, raw_half_life: 
     signals[(z_scores > -exit_z) & (z_scores < exit_z)] = 0
     target_position = signals.ffill().fillna(0)
     
+    # Strict next-open execution
     actual_position = target_position.shift(2).fillna(0)
     
-    # Dollar PnL uses dollar prices and dollar hedge ratios
     diff_a, diff_b = prices.iloc[:, 0].diff(), prices.iloc[:, 1].diff()
     daily_spread_pnl = diff_b - (hedge_ratios.shift(2) * diff_a)
     gross_mtm_pnl = actual_position * daily_spread_pnl
@@ -139,13 +139,14 @@ def backtest_vectorized(prices: pd.DataFrame, spread: pd.Series, raw_half_life: 
     
     net_daily_pnl = gross_mtm_pnl - friction_cost
     
-    oos_idx = int(len(net_daily_pnl) * 0.5)
-    oos_pnl = net_daily_pnl.iloc[oos_idx:]
+    # Exact Date Split
+    oos_mask = net_daily_pnl.index >= oos_start_date
+    oos_pnl = net_daily_pnl[oos_mask]
     cumulative_pnl = oos_pnl.cumsum()
     
     sharpe = (oos_pnl.mean() / oos_pnl.std()) * np.sqrt(252) if oos_pnl.std() > 0 else 0.0
     drawdown = cumulative_pnl - cumulative_pnl.cummax()
-    num_trades = len(trades.iloc[oos_idx:][trades.iloc[oos_idx:] != 0]) // 2
+    num_trades = len(trades[oos_mask][trades[oos_mask] != 0]) // 2
     
     return BacktestResult(pnl_curve=cumulative_pnl, total_return=cumulative_pnl.iloc[-1] if not cumulative_pnl.empty else 0, sharpe_ratio=sharpe, max_drawdown=drawdown.min() if not drawdown.empty else 0.0, num_trades=num_trades)
 
