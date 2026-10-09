@@ -1,6 +1,6 @@
 # StatArbEngine
 
-A purely mathematical Statistical Arbitrage engine for equities, built using a custom Recursive Least Squares (RLS) Kalman filter in NumPy and exact-transition Maximum Likelihood Estimation (MLE) for Ornstein-Uhlenbeck processes.
+A quantitative Statistical Arbitrage engine for equities, built using a custom Recursive Least Squares (RLS) Kalman filter in NumPy and exact-transition Maximum Likelihood Estimation (MLE) for Ornstein-Uhlenbeck processes.
 
 ## Features & Mathematical Rigor
 
@@ -10,15 +10,15 @@ A purely mathematical Statistical Arbitrage engine for equities, built using a c
   * Engle-Granger Cointegration and ADF stationarity tests run *only* on the training data (2018-2023).
   * OOS Backtest explicitly slices at 2024-01-01 and covers 2024 to present.
 * **Vectorized Mark-to-Market Backtester**:
-  * Strict `shift(2)` execution: signals generated at the close of $t$ execute on the open/close of $t+1$.
+  * Strict `shift(2)` execution: signal generated at close $t$, traded at close $t+1$ (a 1-day delay).
   * Volatility-scaled slippage and realistic basis-point transaction costs on the absolute dollar volume of both legs.
   * *Note on hedge rebalancing*: The dollar hedge ratio ($HR_{dollar}$) changes daily with the price ratio, so the hedge rebalances implicitly. Trading costs on this daily micro-rebalancing are currently ignored.
 
 ## Performance Reality (The "No Edge" Baseline)
 
-This project was built to test whether textbook StatArb on highly correlated mega-cap equities survives execution friction and strict out-of-sample holdout discipline. The conclusion: **it does not.**
+This project was built to test whether textbook StatArb on highly correlated mega-cap equities survives execution friction and strict out-of-sample holdout discipline. The conclusion: **no evidence of positive edge; some Kalman rows are significantly negative.**
 
-### Results (Formation: 2018-2023, OOS: 2024-Present)
+### Results (Formation: 2018-2023, OOS: 2024-Present, As of 2026-10-09)
 | Pair | Log EG p-val (Train) | Lag-1 AC | OU Half-Life | Trades | 0bps Sharpe (Kalman) | 3bps Sharpe (Kalman) | 3bps Sharpe (OLS) |
 |------|----------------------|----------|--------------|--------|----------------------|----------------------|-------------------|
 | V / MA | **0.000** | 0.450 | 0.87 days | 27 | -0.71 | -1.16 | 0.54 |
@@ -29,12 +29,12 @@ This project was built to test whether textbook StatArb on highly correlated meg
 | GOOGL / META | 0.774 | 0.635 | 1.53 days | 31 | -0.50 | -0.66 | -0.62 |
 | KO / XOM *(Placebo)* | 0.499 | 0.684 | 1.82 days | 26 | -0.41 | -0.56 | -0.18 |
 
-*(Note: Under a Bonferroni correction for 7 hypotheses, the significance threshold is $\approx 0.007$. Only V/MA is statistically cointegrated in the formation window. OOS Sharpe standard error over the ~2.5 year window is approx $\pm0.6$.)*
+*(Note: Under a Bonferroni correction for 7 hypotheses, the significance threshold is $\approx 0.007$. Only V/MA is statistically cointegrated in the formation window. OOS Sharpe standard error over the ~2.5 year window is approx $\pm0.6$. The -1.64 Sharpe for KO/PEP is ~2.7 standard errors below zero, meaning it is significantly negative.)*
 
 ### Analysis
-1. **The Kalman Filter Absorbs the Signal:** With state noise ($V_w = 1e-5$) against observation noise ($V_e = 1e-3$), the time-varying hedge ratio absorbs most of the structural mean reversion before you can trade it. The lag-1 autocorrelation of the posterior spread sits between 0.45 and 0.68. The placebo pair actually has higher autocorrelation than the theoretically cointegrated pairs, showing this is measuring the filter itself, not the pair's structural cointegration.
-2. **Signal Decay vs. Execution Delay:** The raw calculated OU half-life sits at roughly 1-2 days for all pairs. Because the backtester enforces a strict 2-day execution delay (`shift(2)`), the signal decays entirely before the trade can be executed. This is why even the **0 bps gross Sharpe** is negative across almost all pairs. The issue is not just friction; there is fundamentally no tradable signal at a daily frequency. 
-3. **Statistical Insignificance:** The only pair that passes the Engle-Granger cointegration test in the formation window (V/MA) generated a highly negative OOS Sharpe (-1.16) under the Kalman model, significantly underperforming the naive Rolling OLS baseline (0.54).
+1. **The Real Finding: Kalman Hurts Cointegration:** Rolling OLS beats Kalman on the most structurally cointegrated pairs (V/MA: 0.54 vs -1.16). The adaptive filter hurt exactly where mean reversion exists, because the filter state adapts too quickly and absorbs the signal.
+2. **Signal Decay vs. Execution Delay:** The raw calculated OU half-life sits at roughly 1-2 days for all pairs. Because the backtester enforces a strict 1-day execution delay (`shift(2)` applied to closing prices), the signal largely decays before the trade can be executed. This is consistent with even the **0 bps gross Sharpe** being negative across almost all pairs. The issue is not just friction; there is fundamentally no tradable signal at a daily frequency. 
+3. **Fixed Lookback:** Because the true half-life is so short, the backtester hits the minimum fallback window (10 days) for all pairs.
 
 **Conclusion:** A linear Kalman Filter on log daily close prices provides no statistically significant edge over a rolling OLS baseline, as the filter parameters absorb the mean reversion and the remaining 1-day half-life signal decays before execution.
 

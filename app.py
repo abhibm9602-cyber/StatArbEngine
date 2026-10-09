@@ -16,9 +16,9 @@ with st.sidebar:
     run_analysis = st.button("Run Full Analysis", type="primary")
 
 if run_analysis:
-    prices = fetch_data(list(tickers), "2018-01-01", "2024-01-01")
+    prices = fetch_data(list(tickers), "2018-01-01", "2026-10-09")
     
-    train_prices = prices.iloc[:int(len(prices)*0.5)]
+    train_prices = prices.loc[:"2023-12-31"]
     coint_score, coint_pval = check_cointegration(train_prices)
     
     if baseline_ols:
@@ -26,14 +26,14 @@ if run_analysis:
     else:
         spread, hedge_ratios = apply_kalman_filter(prices)
         
-    train_spread = spread.iloc[50:int(len(spread)*0.5)] 
+    train_spread = spread.loc[prices.index[50]:"2023-12-31"]
     adf_pval = check_stationarity(train_spread)
     lag1_ac = get_lag1_autocorr(train_spread)
     
-    st.subheader("Statistical Checks (Training Sample Only)")
+    st.subheader("Statistical Checks (Training Sample: 2018-2023)")
     cc1, cc2, cc3 = st.columns(3)
-    with cc1: st.metric("Engle-Granger Cointegration p-value", f"{coint_pval:.4f}")
-    with cc2: st.metric("Spread ADF Stationarity p-value", f"{adf_pval:.4f}")
+    with cc1: st.metric("Log EG p-value", f"{coint_pval:.4f}")
+    with cc2: st.metric("Spread ADF p-value", f"{adf_pval:.4f}")
     with cc3: st.metric("Lag-1 Autocorrelation", f"{lag1_ac:.4f}")
     
     ou_params = fit_ou_process_mle(train_spread.dropna())
@@ -45,10 +45,10 @@ if run_analysis:
     with c3: st.metric("σ (Volatility)", f"{ou_params.sigma:.4f}")
     with c4: st.metric("Raw Half-Life", f"{half_life:.2f} days")
     
-    bt = backtest_vectorized(prices, spread, raw_half_life=half_life, hedge_ratios=hedge_ratios, entry_z=entry_z, exit_z=exit_z, transaction_bps=transaction_bps, base_slippage_bps=slippage_bps)
+    bt = backtest_vectorized(prices, spread, raw_half_life=half_life, hedge_ratios=hedge_ratios, entry_z=entry_z, exit_z=exit_z, transaction_bps=transaction_bps, base_slippage_bps=slippage_bps, oos_start_date="2024-01-01")
     
-    st.subheader(f"Out-of-Sample Backtest ({'Rolling OLS Baseline' if baseline_ols else 'Kalman'}, Next-Open Execution)")
-    st.caption("OOS Period: 2021-01-01 to 2024-01-01")
+    st.subheader(f"Out-of-Sample Backtest ({'Rolling OLS Baseline' if baseline_ols else 'Kalman'}, Next-Close Execution)")
+    st.caption("OOS Period: 2024-01-01 to Present")
     
     bc1, bc2, bc3, bc4 = st.columns(4)
     with bc1: st.metric("OOS MTM PnL", f"${bt.total_return:.2f}")
