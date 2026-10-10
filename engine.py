@@ -105,7 +105,7 @@ class BacktestResult:
     max_drawdown: float
     num_trades: int
 
-def backtest_vectorized(prices: pd.DataFrame, spread: pd.Series, raw_half_life: float, hedge_ratios: pd.Series, entry_z: float = 2.0, exit_z: float = 0.5, transaction_bps: float = 5.0, base_slippage_bps: float = 5.0, oos_start_date: str = "2024-01-01") -> BacktestResult:
+def backtest_vectorized(prices: pd.DataFrame, spread: pd.Series, raw_half_life: float, hedge_ratios: pd.Series, entry_z: float = 2.0, exit_z: float = 0.5, transaction_bps: float = 5.0, base_slippage_bps: float = 5.0, oos_start_date: str = "2024-01-01", delay: int = 2) -> BacktestResult:
     
     # Cap window between 10 and 120 days for safety
     valid_hl = raw_half_life if (raw_half_life > 0 and raw_half_life < 252) else 10.0
@@ -122,11 +122,11 @@ def backtest_vectorized(prices: pd.DataFrame, spread: pd.Series, raw_half_life: 
     signals[(z_scores > -exit_z) & (z_scores < exit_z)] = 0
     target_position = signals.ffill().fillna(0)
     
-    # Strict next-close execution (1-day delay)
-    actual_position = target_position.shift(2).fillna(0)
+    # Execution delay
+    actual_position = target_position.shift(delay).fillna(0)
     
     diff_a, diff_b = prices.iloc[:, 0].diff(), prices.iloc[:, 1].diff()
-    daily_spread_pnl = diff_b - (hedge_ratios.shift(2) * diff_a)
+    daily_spread_pnl = diff_b - (hedge_ratios.shift(delay) * diff_a)
     gross_mtm_pnl = actual_position * daily_spread_pnl
     trades = actual_position.diff().fillna(0)
     
