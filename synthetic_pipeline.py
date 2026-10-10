@@ -55,12 +55,13 @@ def run_single(args):
                           index=pd.date_range("2018-01-01", periods=n_days, freq="B"))
 
     # --- Run through the pipeline ---
+    half_idx = n_days // 2
+    oos_date = prices.index[half_idx].strftime("%Y-%m-%d")
+
     if method == "oracle":
-        # Feed the TRUE spread and TRUE hedge ratio
         spread = pd.Series(z, index=prices.index)
         hr_dollar = pd.Series(beta_true * (Y / X), index=prices.index)
     elif method.startswith("kalman_"):
-        # Parse V_w from method name, e.g. "kalman_1e-7"
         vw = float(method.split("_")[1])
         spread, hr_dollar = apply_kalman_filter(prices, V_w_scalar=vw, V_e=1e-3)
     elif method == "ols_20":
@@ -68,12 +69,13 @@ def run_single(args):
     elif method == "ols_40":
         spread, hr_dollar = apply_rolling_ols(prices, window=40)
     elif method == "ols_static":
-        # Fit once on the entire series (in practice it would be formation window)
-        # For this causal demonstration we just fit once statically.
-        cov_xy = np.cov(log_x, log_y)[0, 1]
-        var_x = np.var(log_x)
+        # Fit on formation window only (first half)
+        train_x = log_x[:half_idx]
+        train_y = log_y[:half_idx]
+        cov_xy = np.cov(train_x, train_y)[0, 1]
+        var_x = np.var(train_x)
         beta_static = cov_xy / var_x
-        alpha_static = np.mean(log_y) - beta_static * np.mean(log_x)
+        alpha_static = np.mean(train_y) - beta_static * np.mean(train_x)
         
         spread = pd.Series(log_y - (beta_static * log_x + alpha_static), index=prices.index)
         hr_dollar = pd.Series(beta_static * (Y / X), index=prices.index)
@@ -88,7 +90,7 @@ def run_single(args):
         entry_z=2.0,
         exit_z=0.5,
         transaction_bps=3.0,
-        oos_start_date="2018-01-01",
+        oos_start_date=oos_date,
         delay=2
     )
 
@@ -107,7 +109,7 @@ def main():
         "ols_20",
         "ols_40",
     ]
-    beta_drifts = [0.0, 1e-4]  # constant beta, then slowly drifting
+    beta_drifts = [0.0, 1e-3]  # constant beta, then 10x larger drift
     n_seeds = 50
 
     tasks = []
