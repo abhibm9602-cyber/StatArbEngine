@@ -16,16 +16,14 @@ A quantitative Statistical Arbitrage research engine for equities, built using a
 
 ---
 
-## Performance Reality (The "No Edge" Baseline)
 
-This project was built to test whether textbook StatArb on highly correlated mega-cap equities survives execution friction and strict holdout discipline. The conclusion: **no evidence of positive edge; the adaptive filter absorbs the structural cointegration signal, and remaining deviations largely decay within the 1-day execution delay.**
+## Conclusions from Empirical and Synthetic Sweeps
 
-### 1. Main Results (Formation: 2018-2023, OOS: 2024-Present, As of 2026-10-10)
+1. **Empirical Edge (2024+ Holdout)**: Sweeping the Kalman noise ratio  = V_w/V_e$ over 7 orders of magnitude on 2018–2023 data varies the filtered spread half-life from ~11 days to under 1 day. Freezing the optimal formation tuning at ^* = 10^{-4}$ and evaluating once on 2024 onward yields a net 3 bps Sharpe between −0.99 and +0.83 across six pairs, and +0.22 on a placebo pair. With a standard error of $\approx 0.6$, there is no statistically significant evidence of positive edge.
+2. **Synthetic Validation**: The backtester was verified on planted OU spreads (50 seeds per cell). For planted half-lives of 0.9–10 days, the backtester yields a Sharpe of $\approx$ +1.0 to +1.3 at 3 bps, compared to $\approx$ −0.5 on a random-walk null.
+3. **Kalman Gain Consistency**: As coded in erify_steady_state_gain.py, the empirical effective Kalman gain observed in the sweep matches the theoretical steady-state gain formula  = (-q_{eff} + \sqrt{q_{eff}^2 + 4q_{eff}})/2$ with a maximum absolute error of $\approx 0.024$.
 
-Generated directly by `python run_table.py` (saved to `results_table.csv`):
-
-| Pair | Log EG p-val (Train) | Lag-1 AC | Kalman HL | OLS HL | Trades | 0bps Sharpe (Kalman) | 3bps Sharpe (Kalman) | 3bps Sharpe (OLS) |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 | **Visa / Mastercard** | **0.000** | 0.450 | 0.87 d | 7.68 d | 27 | -0.71 | -1.16 | -0.04 |
 | **Coca-Cola / PepsiCo** | 0.031 | 0.571 | 1.24 d | 11.44 d | 34 | -1.22 | -1.64 | -0.55 |
 | **Goldman Sachs / Morgan Stanley** | 0.025 | 0.541 | 1.13 d | 11.34 d | 31 | -0.62 | -0.93 | +0.21 |
@@ -70,20 +68,57 @@ With $q_{eff} = (x^2 + 1) \cdot q$, where $x = \ln(\text{price}) \approx 5.3$ fo
 
 ### Key Mathematical Takeaways
 1. **The Filter Absorbs the Spread:** When $q \ge 10^{-2}$, the effective gain $g \ge 0.40$. The filter has a memory of only 2–3 days, chasing price moves and absorbing structural cointegration. Consequently, the Kalman half-life collapses to $< 1$ day, whereas the rolling OLS spread retains the physical 7–17 day half-life.
-2. **Gain Controls Spread, but Profitability is Unresolved:** As $g$ rises from 0.02 to 0.4, the half-life falls from 11 days to under 1. However, changing $q$ did *not* change profitability. Formation Sharpe at 3 bps was actually worst at the slowest filters (-0.56) and marginally better (though indistinguishable from noise) at the fastest (+0.27). **Conclusion: The filter gain controls spread half-life and autocorrelation, but changing it didn’t change profitability, so the root cause of the losses (whether signal decay or lack of true structural edge) remains unresolved.**
-3. **The Lookback Window Design:** In the primary baseline table, rolling OLS (with dynamic lookback tied to $2\times$ half-life, yielding 15-34 day windows) outperformed the default Kalman filter. Testing both on a grid of fixed equal lookbacks (10, 20, 40 days) across all 7 pairs reveals mixed results: OLS still yields a higher Sharpe on pairs like CVX/XOM and GOOG/GOOGL, while Kalman outperforms on KO/PEP. Both methods produce uniformly negative or near-zero Sharpes across the grid. Conclusion: OLS had higher Sharpe at its own lookback; at equal lookbacks, neither method extracts a tradable edge.
+2. **Absorption is Causally Demonstrated (Full-Pipeline Synthetic):** The V/MA sweep showed that changing $q$ didn't change profitability on *real* data. But the full-pipeline synthetic test (Section 6) shows that on a *planted* 5-day OU edge, default-q Kalman reduces oracle Sharpe from +0.97 to +0.04 (absorption), while slow-q ($10^{-5}$) recovers it to +0.82. The reason slowing $q$ doesn't help on real V/MA is not that absorption is absent --- it's that the real spread's half-life is unstable out of sample. Absorption destroys the signal at fast $q$; at slow $q$, the signal simply is not there to recover.
+3. **The Lookback Window Design:** In the primary baseline table, rolling OLS (with dynamic lookback tied to $2\times$ half-life, yielding 15-34 day windows) outperformed the default Kalman filter on V/MA and KO/PEP. Testing both at fixed equal lookbacks (10, 20, 40 days) across all 7 preset pairs (`fixed_window_full_table.py`, formation 2018–2023) shows mixed results: Kalman has a higher Sharpe in 11 of 21 cells. Neither method produces a consistently tradable edge. OLS had higher Sharpe at its own dynamic lookback; at equal lookbacks the comparison is a coin flip. Full CSV in `fixed_window_full.csv`.
 4. **No Hidden Edge at Lower $q$:** When choosing $q^* = 10^{-4}$ ($V_w = 10^{-7}$) on formation data to preserve the physical half-life (6–19 days), the out-of-sample validation on the 2024–present window yields a Sharpe of **-0.99** on V/MA and **-0.05** on KO/PEP, while the Placebo pair generates **+0.22**. (Note: 2024+ is a validation set, not a clean holdout, as default-q was viewed prior).
-5. **Rigorous Synthetic Validation:** A Monte Carlo test (50 seeds per cell, calibrated to a 3% spread volatility on a $100 price) was run, feeding a pure true synthetic spread into the backtester (`synthetic_mc.py`). Results prove the backtester detects real edges under a 1-day execution delay (`shift(2)`) even at fast half-lives, confirming the lack of real-world profitability is not a backtester bug.
+5. **Synthetic Backtester Validation (True-Spread Feed):** A Monte Carlo test (50 seeds per cell, spread volatility = 3% of a \$100 price) feeds a *known true OU spread* directly into the backtester (`synthetic_mc.py`). This bypasses the Kalman filter and hedge-ratio estimation — it tests only whether the backtester's z-score entry/exit, execution delay, and cost accounting can detect a planted edge. It does not test the full pipeline.
 
 | Half-Life | Delay | Cost (bps) | Mean Sharpe | 5% | 95% |
 | :--- | :--- | :---: | :---: | :---: | :---: |
+| RW (Null) | `shift(1)` | 0.0 | -0.10 | -0.85 | 0.57 |
+| RW (Null) | `shift(1)` | 3.0 | -0.46 | -1.09 | 0.15 |
+| RW (Null) | `shift(2)` | 0.0 | -0.11 | -0.86 | 0.50 |
 | RW (Null) | `shift(2)` | 3.0 | -0.47 | -1.07 | 0.10 |
-| 0.9 days | `shift(2)` | 3.0 | +0.97 | +0.43 | +1.40 |
-| 2.0 days | `shift(2)` | 3.0 | +1.34 | +0.96 | +1.82 |
-| 5.0 days | `shift(2)` | 3.0 | +1.01 | +0.63 | +1.48 |
-| 10.0 days | `shift(2)` | 3.0 | +1.06 | +0.61 | +1.54 |
+| 0.9 days | `shift(1)` | 0.0 | +2.11 | +1.75 | +2.49 |
+| 0.9 days | `shift(2)` | 3.0 | **+0.97** | +0.43 | +1.40 |
+| 2.0 days | `shift(1)` | 0.0 | +1.99 | +1.64 | +2.38 |
+| 2.0 days | `shift(2)` | 3.0 | **+1.34** | +0.96 | +1.82 |
+| 5.0 days | `shift(1)` | 0.0 | +1.29 | +0.90 | +1.82 |
+| 5.0 days | `shift(2)` | 3.0 | **+1.01** | +0.63 | +1.48 |
+| 10.0 days | `shift(1)` | 0.0 | +1.28 | +0.84 | +1.80 |
+| 10.0 days | `shift(2)` | 3.0 | **+1.06** | +0.61 | +1.54 |
+
+The null control at 0 bps is centered near zero (−0.10), confirming no look-ahead bias. At 3 bps, cost drag shifts it to −0.47. All OU half-lives from 0.9 to 10 days produce statistically significant positive Sharpes at `shift(2)` and 3 bps, confirming the backtester mechanics are sound.
 
 ---
+
+### 6. Full-Pipeline Synthetic Test: Causal Demonstration of Absorption
+
+The true-spread test above bypasses the Kalman filter. To causally test absorption, `synthetic_pipeline.py` simulates *prices* (not spreads): $\log Y_t = \beta \cdot \log X_t + Z_t$, where $Z_t$ is OU with a known half-life. The full Kalman filter, hedge-ratio estimation, and log-to-dollar conversion all run on the synthetic prices. 50 seeds per cell, `shift(2)`, 3 bps.
+
+**5-day half-life, constant $\beta = 1.0$:**
+
+| Method | $q = V_w / V_e$ | Mean Sharpe | 5% | 95% |
+| :--- | :---: | :---: | :---: | :---: |
+| Oracle (true spread) | — | **+0.97** | +0.56 | +1.37 |
+| Kalman ($V_w = 10^{-8}$) | $10^{-5}$ | **+0.82** | +0.48 | +1.23 |
+| Kalman ($V_w = 10^{-7}$) | $10^{-4}$ | **+0.67** | +0.19 | +1.20 |
+| Kalman ($V_w = 10^{-5}$, default) | $10^{-2}$ | **+0.04** | -0.60 | +0.61 |
+| Kalman ($V_w = 10^{-3}$) | $10^{0}$ | -0.09 | -0.57 | +0.36 |
+| OLS (40-day) | — | **+0.55** | -0.04 | +1.12 |
+| OLS (20-day) | — | +0.31 | -0.19 | +0.78 |
+
+**10-day half-life, constant $\beta = 1.0$:**
+
+| Method | $q = V_w / V_e$ | Mean Sharpe | 5% | 95% |
+| :--- | :---: | :---: | :---: | :---: |
+| Oracle (true spread) | — | **+1.00** | +0.56 | +1.54 |
+| Kalman ($V_w = 10^{-8}$) | $10^{-5}$ | **+0.77** | +0.38 | +1.24 |
+| Kalman ($V_w = 10^{-7}$) | $10^{-4}$ | **+0.54** | +0.15 | +1.18 |
+| Kalman ($V_w = 10^{-5}$, default) | $10^{-2}$ | -0.14 | -0.75 | +0.46 |
+| Kalman ($V_w = 10^{-3}$) | $10^{0}$ | -0.33 | -0.84 | +0.27 |
+| OLS (40-day) | — | +0.37 | -0.21 | +0.93 |
+| OLS (20-day) | — | +0.26 | -0.29 | +0.92 |
 
 ## Reproducing the Experiments
 
@@ -102,6 +137,16 @@ python sweep_kalman.py
 # 4. Evaluate the frozen q* configuration on the 2024+ holdout
 python evaluate_frozen_q.py
 
-# 5. Launch interactive Streamlit diagnostic dashboard
+# 5. Fixed-window Kalman vs OLS comparison (formation 2018-2023)
+python fixed_window_full_table.py
+
+# 6. Monte Carlo synthetic backtester validation (true-spread feed)
+python synthetic_mc.py
+
+# 7. Full-pipeline synthetic test (causal demonstration of absorption)
+python synthetic_pipeline.py
+
+# 8. Launch interactive Streamlit diagnostic dashboard
 streamlit run app.py
 ```
+
