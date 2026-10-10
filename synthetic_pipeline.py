@@ -25,12 +25,12 @@ def run_single(args):
     # log X: random walk with daily vol ~1.5% (annualized ~24%)
     log_x = np.cumsum(np.random.normal(0, 0.015, n_days))
 
-    # beta: constant or slowly drifting
+    # beta: constant or linear drift
     if beta_drift == 0.0:
         beta_true = np.full(n_days, 1.0)
     else:
-        # beta drifts as a random walk with small daily steps
-        beta_true = 1.0 + np.cumsum(np.random.normal(0, beta_drift, n_days))
+        # linear drift of beta_drift per day
+        beta_true = 1.0 + np.arange(n_days) * beta_drift
 
     # OU residual with known half-life
     kappa = np.log(2) / (hl_days / 252.0)

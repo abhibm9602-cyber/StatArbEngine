@@ -35,6 +35,21 @@ Generated directly by `python run_table.py` (saved to `results_table.csv`):
 | **Google / Meta** | 0.774 | 0.635 | 1.53 d | 17.37 d | 31 | -0.50 | -0.66 | -0.01 |
 | **Placebo: Coke / Exxon** | 0.499 | 0.684 | 1.82 d | 12.68 d | 26 | -0.41 | -0.56 | +0.53 |
 
+### 2. Static OLS Benchmark (Formation 2018-2023, OOS 2024-Present)
+A static OLS hedge fit on the formation window and traded out-of-sample over 2024+. As shown in the synthetic simulations, a static hedge is optimal if the underlying cointegration relationship is strictly stable.
+
+| Pair | 0bps Sharpe | 3bps Sharpe | Trades |
+| :--- | :---: | :---: | :---: |
+| **Visa / Mastercard** | -0.41 | -0.57 | 26 |
+| **Coca-Cola / PepsiCo** | -0.49 | -0.59 | 25 |
+| **Goldman Sachs / Morgan Stanley** | +0.90 | +0.79 | 33 |
+| **ExxonMobil / Chevron** | -0.15 | -0.25 | 23 |
+| **JPMorgan / Bank of America** | +0.72 | +0.61 | 27 |
+| **Google / Meta** | -0.47 | -0.51 | 28 |
+| **Placebo: Coke / Exxon** | +0.50 | +0.43 | 25 |
+
+These results echo the Kalman sweep: the maximum Sharpe is +0.79 (just over 1 SE), while most pairs—including the highly integrated Visa/Mastercard—sit solidly in the negative. With the synthetic tests showing that static OLS perfectly captures a stable structural edge, its failure to do so here provides a much stronger null result that there is simply no tradable edge in these pairs.
+
 *(Note: Under a Bonferroni correction for 7 hypotheses, the significance threshold is $\alpha \approx 0.05 / 7 \approx 0.007$. Only V/MA is statistically cointegrated in the formation window. OOS Sharpe standard error over the ~2.5 year window is approx $\pm0.6$. The -1.64 Sharpe for KO/PEP is ~2.7 standard errors below zero, meaning it is significantly negative.)*
 
 ---
@@ -71,7 +86,7 @@ With $q_{eff} = (x^2 + 1) \cdot q$, where $x = \ln(\text{price}) \approx 5.3$ fo
 
 ### Key Mathematical Takeaways
 1. **The Filter Absorbs the Spread:** When $q \ge 10^{-2}$, the effective gain $g \ge 0.40$. The filter has a memory of only 2–3 days, chasing price moves and absorbing structural cointegration. Consequently, the Kalman half-life collapses to $< 1$ day, whereas the rolling OLS spread retains the physical 7–17 day half-life.
-2. **Absorption is Causally Demonstrated (Full-Pipeline Synthetic):** The V/MA sweep showed that changing $q$ didn't change profitability on *real* data. But the full-pipeline synthetic test (Section 6) shows that on a *planted* 5-day OU edge, default-q Kalman reduces oracle Sharpe from +0.97 to +0.04 (absorption), while slow-q ($10^{-5}$) recovers it to +0.82. The reason slowing $q$ doesn't help on real pairs remains unresolved: OOS half-lives are actually stable, but a high autocorrelation could just be a damped random walk lacking true mean reversion. Absorption destroys the signal at fast $q$; at slow $q$, a tradable edge simply isn't present in the real data.
+2. **Absorption is Causally Demonstrated (Full-Pipeline Synthetic):** The V/MA sweep showed that changing $q$ didn't change profitability on *real* data. But the full-pipeline synthetic test (Section 6) shows that on a *planted* 5-day OU edge, default-q Kalman reduces oracle Sharpe from +0.97 to +0.02 (absorption), while slow-$q$ ($10^{-5}$) recovers it to +0.84. The reason slowing $q$ doesn't help on real pairs remains unresolved: OOS half-lives, ADF, and Variance Ratios match a ~7-day OU process, but profitability remains deeply negative, leaving it unclear if the signal simply decays or if costs (and tight thresholds) overwhelm it.
 3. **The Lookback Window Design:** In the primary baseline table, rolling OLS (with dynamic lookback tied to $2\times$ half-life, yielding 15-34 day windows) outperformed the default Kalman filter on V/MA and KO/PEP. Testing both at fixed equal lookbacks (10, 20, 40 days) across all 7 preset pairs (`fixed_window_full_table.py`, formation 2018–2023) shows mixed results: Kalman has a higher Sharpe in 13 of 21 cells. Neither method produces a consistently tradable edge. OLS had higher Sharpe at its own dynamic lookback; at equal lookbacks the comparison is a coin flip. Full CSV in `fixed_window_full.csv`.
 4. **No Hidden Edge at Lower $q$:** When choosing $q^* = 10^{-4}$ ($V_w = 10^{-7}$) on formation data (chosen to preserve the physical half-life of 6–19 days, not tuned for Sharpe), the out-of-sample validation on the 2024–present window yields a Sharpe of **-0.99** on V/MA and **-0.05** on KO/PEP, while the Placebo pair generates **+0.22**. (Note: 2024+ is a validation set, not a clean holdout, as default-q was viewed prior).
 5. **Synthetic Backtester Validation (True-Spread Feed):** A Monte Carlo test (50 seeds per cell, spread volatility = 3% of a \$100 price) feeds a *known true OU spread* directly into the backtester (`synthetic_mc.py`). This bypasses the Kalman filter and hedge-ratio estimation — it tests only whether the backtester's z-score entry/exit, execution delay, and cost accounting can detect a planted edge. It does not test the full pipeline.
@@ -136,7 +151,9 @@ The true-spread test above bypasses the Kalman filter. To causally test absorpti
 
 Adding a rapidly drifting $\beta$ (drift $= 10^{-3}$ per day) does not drastically change the ranking over this window. A static OLS baseline perfectly matches the oracle's performance, showing that when the structural mean-reverting edge is stable (even with slow drift), a static hedge is optimal. Rolling OLS (40-day) captures only ~55% of the oracle Sharpe because the short rolling window introduces estimation noise and lag. 
 
-**Why real pairs still earn zero at slow $q$:** The full-pipeline synthetic at slow $q$ earns +0.84 because the *planted* OU signal is guaranteed stable over 1500 days. But as shown by the `oos_diagnostics.py` script on the real V/MA pair at $q^*$ (which uses a 120-day rolling window on out-of-sample data with correct 2018 burn-in), the OOS spread has an ADF p-value of 0.000, and VR at lags 5 and 10 of 0.82 and 0.67, which is characteristic of a true 7-day OU process. Despite this stability, a tradable edge simply isn't present in the real data (likely due to the 3 bps cost drag on standard deviations that are too tight). Absorption destroys the signal at fast $q$; at slow $q$, a profitable edge simply isn't there to recover.
+**Why real pairs still earn zero at slow $q$ (Rigorous Null Comparison):** At $q = 10^{-4}$, a planted 5-day edge gives a Sharpe of +0.70 with an SD of $\approx 0.47$ across synthetic runs. In contrast, running a strict null (a true random-walk spread, $\phi=1$) through the identical pipeline over a matching 750-day window (`synthetic_null.py`) yields a mean Sharpe of -1.16 with a 95% bound at -0.32. The real V/MA result of -0.99 sits extremely comfortably inside the no-edge random-walk range, roughly 3.5 SDs below the expected mean for a true planted edge.
+
+Furthermore, GS/MS emerges as the best pair across multiple methods (+0.83 at $q^*$, +0.79 on Static OLS). However, they all use the exact same price path, meaning this is just a single noisy draw being measured repeatedly. A best-of-seven pick from a purely zero-edge process gives roughly +0.8 SE, perfectly matching the GS/MS result. V/MA looks far more like no edge than a planted one.
 
 ---
 

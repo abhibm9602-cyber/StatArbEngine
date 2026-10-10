@@ -48,7 +48,7 @@ def run_static_ols_real():
         hr_dollar = beta_static * (prices.iloc[:, 1] / prices.iloc[:, 0])
         
         # Backtest (w=20 is standard 10-day half-life assumption)
-        bt = backtest_vectorized(
+        bt_3bps = backtest_vectorized(
             prices=prices,
             spread=spread,
             raw_half_life=10.0,
@@ -59,13 +59,27 @@ def run_static_ols_real():
             oos_start_date="2024-01-01"
         )
         
+        bt_0bps = backtest_vectorized(
+            prices=prices,
+            spread=spread,
+            raw_half_life=10.0,
+            hedge_ratios=hr_dollar,
+            entry_z=2.0, exit_z=0.5,
+            transaction_bps=0.0,
+            delay=2,
+            oos_start_date="2024-01-01"
+        )
+        
         results.append({
             "Pair": pair_name,
-            "Static OLS OOS Sharpe (3bps)": round(bt.sharpe_ratio, 3)
+            "0bps Sharpe": round(bt_0bps.sharpe_ratio, 3),
+            "3bps Sharpe": round(bt_3bps.sharpe_ratio, 3),
+            "Trades": bt_3bps.num_trades
         })
 
     df = pd.DataFrame(results)
-    print("Static OLS OOS Evaluation (2024+)")
+    df.to_csv("static_ols_real_oos.csv", index=False)
+    print("Static OLS OOS Evaluation (2024+, Z-score window=20)")
     print("=================================")
     print(df.to_string(index=False))
 
