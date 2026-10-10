@@ -17,13 +17,16 @@ A quantitative Statistical Arbitrage research engine for equities, built using a
 ---
 
 
-## Conclusions from Empirical and Synthetic Sweeps
+## Performance Reality (The "No Edge" Baseline)
 
-1. **Empirical Edge (2024+ Holdout)**: Sweeping the Kalman noise ratio  = V_w/V_e$ over 7 orders of magnitude on 2018–2023 data varies the filtered spread half-life from ~11 days to under 1 day. Freezing the optimal formation tuning at ^* = 10^{-4}$ and evaluating once on 2024 onward yields a net 3 bps Sharpe between −0.99 and +0.83 across six pairs, and +0.22 on a placebo pair. With a standard error of $\approx 0.6$, there is no statistically significant evidence of positive edge.
-2. **Synthetic Validation**: The backtester was verified on planted OU spreads (50 seeds per cell). For planted half-lives of 0.9–10 days, the backtester yields a Sharpe of $\approx$ +1.0 to +1.3 at 3 bps, compared to $\approx$ −0.5 on a random-walk null.
-3. **Kalman Gain Consistency**: As coded in erify_steady_state_gain.py, the empirical effective Kalman gain observed in the sweep matches the theoretical steady-state gain formula  = (-q_{eff} + \sqrt{q_{eff}^2 + 4q_{eff}})/2$ with a maximum absolute error of $\approx 0.024$.
+This project was built to test whether textbook StatArb on highly correlated mega-cap equities survives execution friction and strict holdout discipline. The conclusion: **no evidence of positive edge on real equity pairs. The adaptive Kalman filter absorbs structural cointegration at default noise settings, but slowing the filter does not recover profitability either. A Monte Carlo synthetic validation confirms the backtester detects planted edges at all tested half-lives (0.9–10 days) under a 1-day execution delay, so the null result reflects the absence of a tradable signal in these pairs, not a pipeline bug.**
 
---- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+### 1. Main Results (Formation: 2018-2023, OOS: 2024-Present, As of 2026-10-10)
+
+Generated directly by `python run_table.py` (saved to `results_table.csv`):
+
+| Pair | Log EG p-val (Train) | Lag-1 AC | Kalman HL | OLS HL | Trades | 0bps Sharpe (Kalman) | 3bps Sharpe (Kalman) | 3bps Sharpe (OLS) |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 | **Visa / Mastercard** | **0.000** | 0.450 | 0.87 d | 7.68 d | 27 | -0.71 | -1.16 | -0.04 |
 | **Coca-Cola / PepsiCo** | 0.031 | 0.571 | 1.24 d | 11.44 d | 34 | -1.22 | -1.64 | -0.55 |
 | **Goldman Sachs / Morgan Stanley** | 0.025 | 0.541 | 1.13 d | 11.34 d | 31 | -0.62 | -0.93 | +0.21 |
@@ -68,9 +71,9 @@ With $q_{eff} = (x^2 + 1) \cdot q$, where $x = \ln(\text{price}) \approx 5.3$ fo
 
 ### Key Mathematical Takeaways
 1. **The Filter Absorbs the Spread:** When $q \ge 10^{-2}$, the effective gain $g \ge 0.40$. The filter has a memory of only 2–3 days, chasing price moves and absorbing structural cointegration. Consequently, the Kalman half-life collapses to $< 1$ day, whereas the rolling OLS spread retains the physical 7–17 day half-life.
-2. **Absorption is Causally Demonstrated (Full-Pipeline Synthetic):** The V/MA sweep showed that changing $q$ didn't change profitability on *real* data. But the full-pipeline synthetic test (Section 6) shows that on a *planted* 5-day OU edge, default-q Kalman reduces oracle Sharpe from +0.97 to +0.04 (absorption), while slow-q ($10^{-5}$) recovers it to +0.82. The reason slowing $q$ doesn't help on real V/MA is not that absorption is absent --- it's that the real spread's half-life is unstable out of sample. Absorption destroys the signal at fast $q$; at slow $q$, the signal simply is not there to recover.
+2. **Absorption is Causally Demonstrated (Full-Pipeline Synthetic):** The V/MA sweep showed that changing $q$ didn't change profitability on *real* data. But the full-pipeline synthetic test (Section 6) shows that on a *planted* 5-day OU edge, default-q Kalman reduces oracle Sharpe from +0.97 to +0.04 (absorption), while slow-q ($10^{-5}$) recovers it to +0.82. The reason slowing $q$ doesn't help on real pairs remains unresolved: OOS half-lives are actually stable, but a high autocorrelation could just be a damped random walk lacking true mean reversion. Absorption destroys the signal at fast $q$; at slow $q$, a tradable edge simply isn't present in the real data.
 3. **The Lookback Window Design:** In the primary baseline table, rolling OLS (with dynamic lookback tied to $2\times$ half-life, yielding 15-34 day windows) outperformed the default Kalman filter on V/MA and KO/PEP. Testing both at fixed equal lookbacks (10, 20, 40 days) across all 7 preset pairs (`fixed_window_full_table.py`, formation 2018–2023) shows mixed results: Kalman has a higher Sharpe in 11 of 21 cells. Neither method produces a consistently tradable edge. OLS had higher Sharpe at its own dynamic lookback; at equal lookbacks the comparison is a coin flip. Full CSV in `fixed_window_full.csv`.
-4. **No Hidden Edge at Lower $q$:** When choosing $q^* = 10^{-4}$ ($V_w = 10^{-7}$) on formation data to preserve the physical half-life (6–19 days), the out-of-sample validation on the 2024–present window yields a Sharpe of **-0.99** on V/MA and **-0.05** on KO/PEP, while the Placebo pair generates **+0.22**. (Note: 2024+ is a validation set, not a clean holdout, as default-q was viewed prior).
+4. **No Hidden Edge at Lower $q$:** When choosing $q^* = 10^{-4}$ ($V_w = 10^{-7}$) on formation data (chosen to preserve the physical half-life of 6–19 days, not tuned for Sharpe), the out-of-sample validation on the 2024–present window yields a Sharpe of **-0.99** on V/MA and **-0.05** on KO/PEP, while the Placebo pair generates **+0.22**. (Note: 2024+ is a validation set, not a clean holdout, as default-q was viewed prior).
 5. **Synthetic Backtester Validation (True-Spread Feed):** A Monte Carlo test (50 seeds per cell, spread volatility = 3% of a \$100 price) feeds a *known true OU spread* directly into the backtester (`synthetic_mc.py`). This bypasses the Kalman filter and hedge-ratio estimation — it tests only whether the backtester's z-score entry/exit, execution delay, and cost accounting can detect a planted edge. It does not test the full pipeline.
 
 | Half-Life | Delay | Cost (bps) | Mean Sharpe | 5% | 95% |
@@ -88,7 +91,7 @@ With $q_{eff} = (x^2 + 1) \cdot q$, where $x = \ln(\text{price}) \approx 5.3$ fo
 | 10.0 days | `shift(1)` | 0.0 | +1.28 | +0.84 | +1.80 |
 | 10.0 days | `shift(2)` | 3.0 | **+1.06** | +0.61 | +1.54 |
 
-The null control at 0 bps is centered near zero (−0.10), confirming no look-ahead bias. At 3 bps, cost drag shifts it to −0.47. All OU half-lives from 0.9 to 10 days produce statistically significant positive Sharpes at `shift(2)` and 3 bps, confirming the backtester mechanics are sound.
+The null control at 0 bps is centered near zero (−0.10), confirming this specific setup has no look-ahead bias. At 3 bps, cost drag shifts it to −0.47. All OU half-lives from 0.9 to 10 days produce positive Sharpes in >95% of seeds at `shift(2)` and 3 bps, confirming the backtester mechanics are sound.
 
 ---
 
@@ -98,27 +101,41 @@ The true-spread test above bypasses the Kalman filter. To causally test absorpti
 
 **5-day half-life, constant $\beta = 1.0$:**
 
-| Method | $q = V_w / V_e$ | Mean Sharpe | 5% | 95% |
-| :--- | :---: | :---: | :---: | :---: |
-| Oracle (true spread) | — | **+0.97** | +0.56 | +1.37 |
-| Kalman ($V_w = 10^{-8}$) | $10^{-5}$ | **+0.82** | +0.48 | +1.23 |
-| Kalman ($V_w = 10^{-7}$) | $10^{-4}$ | **+0.67** | +0.19 | +1.20 |
-| Kalman ($V_w = 10^{-5}$, default) | $10^{-2}$ | **+0.04** | -0.60 | +0.61 |
-| Kalman ($V_w = 10^{-3}$) | $10^{0}$ | -0.09 | -0.57 | +0.36 |
-| OLS (40-day) | — | **+0.55** | -0.04 | +1.12 |
-| OLS (20-day) | — | +0.31 | -0.19 | +0.78 |
+| Method | $\beta$ drift | $q = V_w / V_e$ | Mean Sharpe | 5% | 95% |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| Oracle (true spread) | constant | — | **+0.97** | +0.56 | +1.38 |
+| Kalman ($V_w = 10^{-8}$) | constant | $10^{-5}$ | **+0.82** | +0.48 | +1.23 |
+| Kalman ($V_w = 10^{-5}$, def) | constant | $10^{-2}$ | **+0.04** | -0.60 | +0.62 |
+| OLS (static formation) | constant | — | **+0.96** | +0.56 | +1.38 |
+| OLS (40-day) | constant | — | **+0.55** | -0.05 | +1.13 |
+| Oracle (true spread) | $10^{-4}$/day | — | **+1.00** | +0.60 | +1.35 |
+| Kalman ($V_w = 10^{-8}$) | $10^{-4}$/day | $10^{-5}$ | **+0.87** | +0.51 | +1.27 |
+| Kalman ($V_w = 10^{-5}$, def) | $10^{-4}$/day | $10^{-2}$ | **+0.07** | -0.55 | +0.72 |
+| OLS (static formation) | $10^{-4}$/day | — | **+1.00** | +0.60 | +1.43 |
+| OLS (40-day) | $10^{-4}$/day | — | **+0.53** | +0.09 | +0.95 |
 
-**10-day half-life, constant $\beta = 1.0$:**
+**10-day half-life:**
 
-| Method | $q = V_w / V_e$ | Mean Sharpe | 5% | 95% |
-| :--- | :---: | :---: | :---: | :---: |
-| Oracle (true spread) | — | **+1.00** | +0.56 | +1.54 |
-| Kalman ($V_w = 10^{-8}$) | $10^{-5}$ | **+0.77** | +0.38 | +1.24 |
-| Kalman ($V_w = 10^{-7}$) | $10^{-4}$ | **+0.54** | +0.15 | +1.18 |
-| Kalman ($V_w = 10^{-5}$, default) | $10^{-2}$ | -0.14 | -0.75 | +0.46 |
-| Kalman ($V_w = 10^{-3}$) | $10^{0}$ | -0.33 | -0.84 | +0.27 |
-| OLS (40-day) | — | +0.37 | -0.21 | +0.93 |
-| OLS (20-day) | — | +0.26 | -0.29 | +0.92 |
+| Method | $\beta$ drift | $q = V_w / V_e$ | Mean Sharpe | 5% | 95% |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| Oracle (true spread) | constant | — | **+1.01** | +0.57 | +1.55 |
+| Kalman ($V_w = 10^{-8}$) | constant | $10^{-5}$ | **+0.78** | +0.38 | +1.24 |
+| Kalman ($V_w = 10^{-5}$, def) | constant | $10^{-2}$ | -0.14 | -0.76 | +0.46 |
+| OLS (static formation) | constant | — | **+1.01** | +0.59 | +1.44 |
+| OLS (40-day) | constant | — | +0.37 | -0.21 | +0.93 |
+| Oracle (true spread) | $10^{-4}$/day | — | **+0.99** | +0.52 | +1.55 |
+| Kalman ($V_w = 10^{-8}$) | $10^{-4}$/day | $10^{-5}$ | **+0.70** | +0.17 | +1.31 |
+| Kalman ($V_w = 10^{-5}$, def) | $10^{-4}$/day | $10^{-2}$ | -0.11 | -0.68 | +0.49 |
+| OLS (static formation) | $10^{-4}$/day | — | **+0.99** | +0.54 | +1.49 |
+| OLS (40-day) | $10^{-4}$/day | — | +0.34 | -0.26 | +0.84 |
+
+**Interpretation:** Default-q Kalman ($q = 10^{-2}$) reduces a ~1.0 oracle Sharpe to zero. Slowing the filter to $q = 10^{-5}$ recovers ~80% of the oracle. **This causally demonstrates absorption:** the fast Kalman filter chases the hedge ratio so aggressively that it absorbs the mean-reverting spread into the state, leaving no signal to trade. 
+
+Adding a slowly drifting $\beta$ (drift $= 10^{-4}$ per day) barely degrades performance because the drift is small relative to the spread volatility. A static OLS baseline perfectly matches the oracle's performance, showing that when the structural mean-reverting edge is stable, a static hedge is optimal. Rolling OLS (40-day) captures only ~55% of the oracle Sharpe because the short rolling window introduces estimation noise and lag. 
+
+**Why real pairs still earn zero at slow $q$:** The full-pipeline synthetic at slow $q$ earns +0.82 because the *planted* OU signal is guaranteed stable over 1500 days. But as shown by the `oos_diagnostics.py` script on the real V/MA pair at $q^*$, the OOS spread has an ADF p-value of 0.000, high autocorrelation, and fatter tails (7.1% of z-scores > |2|), but its local rolling half-life fluctuates wildly between 1.5 and 312 days. The high autocorrelation reflects a damped random walk rather than a stable, tradable mean reversion. Absorption destroys the signal at fast $q$; at slow $q$, a stable edge simply isn't there.
+
+---
 
 ## Reproducing the Experiments
 

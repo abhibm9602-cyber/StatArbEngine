@@ -1,22 +1,22 @@
 Pair,Tickers(X/Y),Window,Kalman Sharpe,OLS Sharpe
-Visa / Mastercard,V/MA,10,-0.241,-0.465
-Visa / Mastercard,V/MA,20,-0.55,-1.082
-Visa / Mastercard,V/MA,40,-0.318,-0.687
-Coca-Cola / PepsiCo,KO/PEP,10,0.003,-0.64
-Coca-Cola / PepsiCo,KO/PEP,20,-0.551,-0.379
-Coca-Cola / PepsiCo,KO/PEP,40,-0.306,-0.535
-Goldman Sachs / Morgan Stanley,GS/MS,10,-0.34,-0.284
-Goldman Sachs / Morgan Stanley,GS/MS,20,0.204,-0.031
-Goldman Sachs / Morgan Stanley,GS/MS,40,-0.415,-0.408
-ExxonMobil / Chevron,XOM/CVX,10,-0.817,-0.799
-ExxonMobil / Chevron,XOM/CVX,20,-0.225,-0.018
-ExxonMobil / Chevron,XOM/CVX,40,-0.671,0.009
-JPMorgan / Bank of America,JPM/BAC,10,-0.184,0.417
-JPMorgan / Bank of America,JPM/BAC,20,-0.082,-0.001
-JPMorgan / Bank of America,JPM/BAC,40,0.046,-0.803
-Google / Meta,GOOGL/META,10,0.231,0.142
-Google / Meta,GOOGL/META,20,0.111,0.295
-Google / Meta,GOOGL/META,40,0.344,-0.108
-Placebo: Coke / Exxon,KO/XOM,10,-0.145,0.44
-Placebo: Coke / Exxon,KO/XOM,20,0.16,-0.619
-Placebo: Coke / Exxon,KO/XOM,40,-0.308,-0.393
+Visa / Mastercard,V/MA,10,-0.241,-0.774
+Visa / Mastercard,V/MA,20,-0.55,-0.499
+Visa / Mastercard,V/MA,40,-0.318,-0.261
+Coca-Cola / PepsiCo,KO/PEP,10,0.003,-0.743
+Coca-Cola / PepsiCo,KO/PEP,20,-0.551,-0.215
+Coca-Cola / PepsiCo,KO/PEP,40,-0.306,-0.596
+Goldman Sachs / Morgan Stanley,GS/MS,10,-0.34,0.058
+Goldman Sachs / Morgan Stanley,GS/MS,20,0.204,-0.122
+Goldman Sachs / Morgan Stanley,GS/MS,40,-0.415,-0.521
+ExxonMobil / Chevron,XOM/CVX,10,-0.817,-0.9
+ExxonMobil / Chevron,XOM/CVX,20,-0.225,-0.098
+ExxonMobil / Chevron,XOM/CVX,40,-0.671,-0.374
+JPMorgan / Bank of America,JPM/BAC,10,-0.184,0.059
+JPMorgan / Bank of America,JPM/BAC,20,-0.082,-0.123
+JPMorgan / Bank of America,JPM/BAC,40,0.046,-0.215
+Google / Meta,GOOGL/META,10,0.231,-0.215
+Google / Meta,GOOGL/META,20,0.111,0.036
+Google / Meta,GOOGL/META,40,0.344,-0.155
+Placebo: Coke / Exxon,KO/XOM,10,-0.145,-0.24
+Placebo: Coke / Exxon,KO/XOM,20,0.16,-0.382
+Placebo: Coke / Exxon,KO/XOM,40,-0.308,-0.289

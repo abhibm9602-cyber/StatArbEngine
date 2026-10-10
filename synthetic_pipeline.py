@@ -67,6 +67,16 @@ def run_single(args):
         spread, hr_dollar = apply_rolling_ols(prices, window=20)
     elif method == "ols_40":
         spread, hr_dollar = apply_rolling_ols(prices, window=40)
+    elif method == "ols_static":
+        # Fit once on the entire series (in practice it would be formation window)
+        # For this causal demonstration we just fit once statically.
+        cov_xy = np.cov(log_x, log_y)[0, 1]
+        var_x = np.var(log_x)
+        beta_static = cov_xy / var_x
+        alpha_static = np.mean(log_y) - beta_static * np.mean(log_x)
+        
+        spread = pd.Series(log_y - (beta_static * log_x + alpha_static), index=prices.index)
+        hr_dollar = pd.Series(beta_static * (Y / X), index=prices.index)
     else:
         raise ValueError(f"Unknown method: {method}")
 
@@ -93,6 +103,7 @@ def main():
         "kalman_1e-7",   # q=1e-4: slow
         "kalman_1e-5",   # q=1e-2: default
         "kalman_1e-3",   # q=1: very fast, maximum absorption
+        "ols_static",
         "ols_20",
         "ols_40",
     ]

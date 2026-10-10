@@ -42,11 +42,11 @@ def run_full_fixed_window():
         # Kalman spread (one per pair, independent of window)
         spread_k, hr_k = apply_kalman_filter(prices, V_w_scalar=1e-5, V_e=1e-3)
 
-        for w in windows:
-            # OLS with this specific window
-            spread_o, hr_o = apply_rolling_ols(prices, window=w)
+        # OLS regression window is fixed at 60 days to fit parameters
+        spread_o, hr_o = apply_rolling_ols(prices, window=60)
 
-            # Backtest both at the SAME z-score lookback
+        for w in windows:
+            # Backtest both at the SAME z-score lookback (w/2.0 inside backtester -> w window)
             bt_k = backtest_vectorized(
                 prices, spread_k, raw_half_life=w/2.0, hedge_ratios=hr_k,
                 entry_z=2.0, exit_z=0.5, transaction_bps=3.0,
