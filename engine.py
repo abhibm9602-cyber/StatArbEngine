@@ -25,15 +25,14 @@ def check_stationarity(spread: pd.Series) -> float:
     result = adfuller(spread.dropna())
     return result[1] 
 
-def apply_kalman_filter(prices: pd.DataFrame) -> Tuple[pd.Series, pd.Series]:
+def apply_kalman_filter(prices: pd.DataFrame, V_w_scalar: float = 1e-5, V_e: float = 1e-3) -> Tuple[pd.Series, pd.Series]:
     log_prices = np.log(prices)
     x = log_prices.iloc[:, 0].values
     y = log_prices.iloc[:, 1].values
     
     theta = np.zeros(2)
     P = np.eye(2)
-    V_w = (1e-5 / (1 - 1e-5)) * np.eye(2)
-    V_e = 1e-3
+    V_w = (V_w_scalar / (1 - V_w_scalar)) * np.eye(2)
     
     hedge_ratios_elasticity = np.zeros(len(y))
     intercepts = np.zeros(len(y))
@@ -123,7 +122,7 @@ def backtest_vectorized(prices: pd.DataFrame, spread: pd.Series, raw_half_life: 
     signals[(z_scores > -exit_z) & (z_scores < exit_z)] = 0
     target_position = signals.ffill().fillna(0)
     
-    # Strict next-open execution
+    # Strict next-close execution (1-day delay)
     actual_position = target_position.shift(2).fillna(0)
     
     diff_a, diff_b = prices.iloc[:, 0].diff(), prices.iloc[:, 1].diff()

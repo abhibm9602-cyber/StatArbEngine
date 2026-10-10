@@ -1,0 +1,29 @@
+Pair,V_w,q,Mean_Effective_Gain_g,Lag1_Autocorr,OU_HalfLife_days,Formation_Sharpe_3bps
+Visa / Mastercard,1e-08,1e-05,0.0199,0.9398,10.99,-0.29
+Visa / Mastercard,1e-07,9.999999999999999e-05,0.0541,0.8937,6.12,-0.56
+Visa / Mastercard,1e-06,0.001,0.1562,0.7559,2.48,-0.26
+Visa / Mastercard,1e-05,0.01,0.4093,0.4498,0.87,-0.09
+Visa / Mastercard,0.0001,0.1,0.7827,0.094,0.29,0.16
+Visa / Mastercard,0.001,1.0,0.9668,-0.072,174.67,0.27
+Visa / Mastercard,0.01,10.0,0.9965,-0.0997,174.67,0.22
+Coca-Cola / PepsiCo,1e-08,1e-05,0.0155,0.9701,23.04,-0.5
+Coca-Cola / PepsiCo,1e-07,9.999999999999999e-05,0.041,0.9356,10.41,-0.33
+Coca-Cola / PepsiCo,1e-06,0.001,0.1189,0.8337,3.81,-0.4
+Coca-Cola / PepsiCo,1e-05,0.01,0.325,0.5709,1.24,0.05
+Coca-Cola / PepsiCo,0.0001,0.1,0.6918,0.1849,0.41,-0.34
+Coca-Cola / PepsiCo,0.001,1.0,0.9426,-0.0309,174.67,-0.53
+Coca-Cola / PepsiCo,0.01,10.0,0.9937,-0.0661,174.67,-0.54
+Goldman Sachs / Morgan Stanley,1e-08,1e-05,0.0212,0.9666,20.44,-0.1
+Goldman Sachs / Morgan Stanley,1e-07,9.999999999999999e-05,0.057,0.9315,9.77,-0.11
+Goldman Sachs / Morgan Stanley,1e-06,0.001,0.1631,0.8222,3.54,-0.17
+Goldman Sachs / Morgan Stanley,1e-05,0.01,0.4233,0.5412,1.13,-0.24
+Goldman Sachs / Morgan Stanley,0.0001,0.1,0.795,0.138,174.34,-0.28
+Goldman Sachs / Morgan Stanley,0.001,1.0,0.9694,-0.0794,174.67,-0.23
+Goldman Sachs / Morgan Stanley,0.01,10.0,0.9968,-0.1216,174.67,-0.36
+Placebo: Coke / Exxon,1e-08,1e-05,0.0155,0.9865,51.31,0.22
+Placebo: Coke / Exxon,1e-07,9.999999999999999e-05,0.041,0.964,18.95,-0.95
+Placebo: Coke / Exxon,1e-06,0.001,0.1189,0.8927,6.11,-0.2
+Placebo: Coke / Exxon,1e-05,0.01,0.325,0.6836,1.82,-0.13
+Placebo: Coke / Exxon,0.0001,0.1,0.6918,0.3073,0.59,0.34
+Placebo: Coke / Exxon,0.001,1.0,0.9426,0.0577,174.64,-0.15
+Placebo: Coke / Exxon,0.01,10.0,0.9937,0.0085,174.67,-0.42

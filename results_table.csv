@@ -1,0 +1,8 @@
+Pair,Log_EG_pval_train,Lag1_AC_Kalman,Kalman_HL_days,OLS_HL_days,Trades_OOS,Sharpe_0bps_Kalman,Sharpe_3bps_Kalman,Sharpe_3bps_OLS
+Visa / Mastercard,0.0002,0.4498,0.87,7.68,27,-0.71,-1.16,-0.04
+Coca-Cola / PepsiCo,0.0314,0.5709,1.24,11.44,34,-1.22,-1.64,-0.55
+Goldman Sachs / Morgan Stanley,0.0255,0.5412,1.13,11.34,31,-0.62,-0.93,0.21
+ExxonMobil / Chevron,0.1752,0.612,1.41,11.37,23,1.04,0.7,-0.68
+JPMorgan / Bank of America,0.9694,0.6022,1.37,12.8,25,-0.24,-0.58,0.31
+Google / Meta,0.7739,0.6348,1.53,17.37,31,-0.5,-0.66,-0.01
+Placebo: Coke / Exxon,0.4995,0.6836,1.82,12.68,26,-0.41,-0.56,0.53

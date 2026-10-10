@@ -1,0 +1,8 @@
+Pair,Frozen_V_w,Effective_Gain_g,OOS_Lag1_AC,Formation_OU_HL,OOS_Sharpe_0bps,OOS_Sharpe_3bps
+Visa / Mastercard,1e-07,0.0551,0.9297,6.12,-0.77,-0.99
+Coca-Cola / PepsiCo,1e-07,0.0416,0.954,10.41,0.05,-0.05
+Goldman Sachs / Morgan Stanley,1e-07,0.0591,0.8902,9.77,0.94,0.83
+ExxonMobil / Chevron,1e-07,0.0449,0.9491,9.43,-0.57,-0.69
+JPMorgan / Bank of America,1e-07,0.0514,0.9058,13.35,-0.08,-0.22
+Google / Meta,1e-07,0.0493,0.9562,14.64,-0.28,-0.31
+Placebo: Coke / Exxon,1e-07,0.0416,0.9416,18.95,0.26,0.22
