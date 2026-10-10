@@ -71,9 +71,17 @@ With $q_{eff} = (x^2 + 1) \cdot q$, where $x = \ln(\text{price}) \approx 5.3$ fo
 ### Key Mathematical Takeaways
 1. **The Filter Absorbs the Spread:** When $q \ge 10^{-2}$, the effective gain $g \ge 0.40$. The filter has a memory of only 2–3 days, chasing price moves and absorbing structural cointegration. Consequently, the Kalman half-life collapses to $< 1$ day, whereas the rolling OLS spread retains the physical 7–17 day half-life.
 2. **Gain Controls Spread, but Profitability is Unresolved:** As $g$ rises from 0.02 to 0.4, the half-life falls from 11 days to under 1. However, changing $q$ did *not* change profitability. Formation Sharpe at 3 bps was actually worst at the slowest filters (-0.56) and marginally better (though indistinguishable from noise) at the fastest (+0.27). **Conclusion: The filter gain controls spread half-life and autocorrelation, but changing it didn’t change profitability, so the root cause of the losses (whether signal decay or lack of true structural edge) remains unresolved.**
-3. **The Lookback Window Confound:** In the primary baseline table, rolling OLS outperformed Kalman on V/MA and KO/PEP. However, further testing (`fixed_window_comparison.py`) revealed this was purely an artifact of differing lookback windows. When enforcing identical fixed lookback windows (10, 20, or 40 days) for both the Kalman and OLS spreads, **Kalman universally outperforms OLS** (e.g. at 20 days, Kalman Sharpe is -0.55 vs OLS -1.08). The apparent OLS outperformance was driven by OLS assigning itself longer physical half-lives (15-34 days).
+3. **The Lookback Window Design:** In the primary baseline table, rolling OLS (with dynamic lookback tied to $2\times$ half-life, yielding 15-34 day windows) outperformed the default Kalman filter. Testing both on a grid of fixed equal lookbacks (10, 20, 40 days) across all 7 pairs reveals mixed results: OLS still yields a higher Sharpe on pairs like CVX/XOM and GOOG/GOOGL, while Kalman outperforms on KO/PEP. Both methods produce uniformly negative or near-zero Sharpes across the grid. Conclusion: OLS had higher Sharpe at its own lookback; at equal lookbacks, neither method extracts a tradable edge.
 4. **No Hidden Edge at Lower $q$:** When choosing $q^* = 10^{-4}$ ($V_w = 10^{-7}$) on formation data to preserve the physical half-life (6–19 days), the out-of-sample validation on the 2024–present window yields a Sharpe of **-0.99** on V/MA and **-0.05** on KO/PEP, while the Placebo pair generates **+0.22**. (Note: 2024+ is a validation set, not a clean holdout, as default-q was viewed prior).
-5. **Synthetic Edge Validation:** To ensure the pipeline works, `synthetic_edge.py` generates a synthetic pair with a known 5-day half-life. The backtester successfully recovers a Sharpe > 1.3 at 3bps under a 0-day delay (`shift(1)`), confirming the math engine is sound and that the 1-day execution delay (`shift(2)`) is the primary destroyer of fast mean-reverting edges.
+5. **Rigorous Synthetic Validation:** A Monte Carlo test (50 seeds per cell, calibrated to a 3% spread volatility on a $100 price) was run, feeding a pure true synthetic spread into the backtester (`synthetic_mc.py`). Results prove the backtester detects real edges under a 1-day execution delay (`shift(2)`) even at fast half-lives, confirming the lack of real-world profitability is not a backtester bug.
+
+| Half-Life | Delay | Cost (bps) | Mean Sharpe | 5% | 95% |
+| :--- | :--- | :---: | :---: | :---: | :---: |
+| RW (Null) | `shift(2)` | 3.0 | -0.47 | -1.07 | 0.10 |
+| 0.9 days | `shift(2)` | 3.0 | +0.97 | +0.43 | +1.40 |
+| 2.0 days | `shift(2)` | 3.0 | +1.34 | +0.96 | +1.82 |
+| 5.0 days | `shift(2)` | 3.0 | +1.01 | +0.63 | +1.48 |
+| 10.0 days | `shift(2)` | 3.0 | +1.06 | +0.61 | +1.54 |
 
 ---
 
