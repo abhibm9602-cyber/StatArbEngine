@@ -105,11 +105,8 @@ p3.metric("Max Drawdown", f"${bt.max_drawdown:.2f}")
 p4.metric("Total Trades Executed", f"{bt.num_trades}")
 
 # --- Row 3: 3-Panel Visual Diagnostic ---
-valid_hl = half_life if (0 < half_life < 252) else 10.0
-rolling_window = min(120, max(10, int(valid_hl * 2)))
-rolling_mean = spread.rolling(rolling_window).mean()
-rolling_std = spread.rolling(rolling_window).std()
-z_score = ((spread - rolling_mean) / rolling_std).loc["2024-01-01":]
+z_score = bt.z_score.loc["2024-01-01":]
+rolling_window = bt.rolling_window
 oos_hr = hedge_ratios.loc["2024-01-01":]
 
 fig = make_subplots(

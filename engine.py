@@ -119,6 +119,8 @@ class BacktestResult:
     sharpe_ratio: float
     max_drawdown: float
     num_trades: int
+    z_score: pd.Series = None
+    rolling_window: int = 10
 
 def backtest_vectorized(prices: pd.DataFrame, spread: pd.Series, raw_half_life: float, hedge_ratios: pd.Series, entry_z: float = 2.0, exit_z: float = 0.5, transaction_bps: float = 5.0, base_slippage_bps: float = 5.0, oos_start_date: str = "2024-01-01", delay: int = 2) -> BacktestResult:
     
@@ -171,7 +173,15 @@ def backtest_vectorized(prices: pd.DataFrame, spread: pd.Series, raw_half_life: 
     drawdown = cumulative_pnl - cumulative_pnl.cummax()
     num_trades = len(trades[oos_mask][trades[oos_mask] != 0]) // 2
     
-    return BacktestResult(pnl_curve=cumulative_pnl, total_return=cumulative_pnl.iloc[-1] if not cumulative_pnl.empty else 0, sharpe_ratio=sharpe, max_drawdown=drawdown.min() if not drawdown.empty else 0.0, num_trades=num_trades)
+    return BacktestResult(
+        pnl_curve=cumulative_pnl,
+        total_return=cumulative_pnl.iloc[-1] if not cumulative_pnl.empty else 0,
+        sharpe_ratio=sharpe,
+        max_drawdown=drawdown.min() if not drawdown.empty else 0.0,
+        num_trades=num_trades,
+        z_score=z_scores,
+        rolling_window=rolling_window
+    )
 
 PRESET_PAIRS = {
     "Visa / Mastercard": ("V", "MA"),
