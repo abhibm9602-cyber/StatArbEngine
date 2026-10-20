@@ -3,7 +3,7 @@ import pandas as pd
 import yfinance as yf
 import subprocess
 from datetime import datetime
-from engine import apply_kalman_filter, apply_rolling_ols, fit_ou_process_mle, backtest_vectorized, check_cointegration, get_lag1_autocorr, PRESET_PAIRS
+from engine import fetch_data, apply_kalman_filter, apply_rolling_ols, fit_ou_process_mle, backtest_vectorized, check_cointegration, get_lag1_autocorr, PRESET_PAIRS
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -28,9 +28,7 @@ results = []
 
 for name, tickers in PRESET_PAIRS.items():
     try:
-        prices = yf.download(list(tickers), start="2018-01-01", end="2026-10-10", auto_adjust=True, progress=False)
-        prices = prices['Close'] if 'Close' in prices.columns else prices
-        prices = prices[list(tickers)].dropna()
+        prices = fetch_data(list(tickers), "2018-01-01", "2026-10-10")
         
         train_prices = prices.loc[:"2023-12-31"]
         if len(train_prices) < 100: continue
