@@ -27,13 +27,13 @@ Generated directly by `python run_table.py` (saved to `results_table.csv`):
 
 | Pair | Log EG p-val (Train) | Lag-1 AC | Kalman HL | OLS HL | Trades | 0bps Sharpe (Kalman) | 3bps Sharpe (Kalman) | 3bps Sharpe (OLS) |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Visa / Mastercard** | **0.000** | 0.450 | 0.87 d | 7.73 d | 27 | -0.71 | -1.16 | -0.04 |
-| **Coca-Cola / PepsiCo** | 0.031 | 0.571 | 1.24 d | 11.57 d | 34 | -1.22 | -1.64 | -0.53 |
-| **Goldman Sachs / Morgan Stanley** | 0.025 | 0.541 | 1.13 d | 11.47 d | 31 | -0.62 | -0.93 | +0.22 |
-| **ExxonMobil / Chevron** | 0.175 | 0.612 | 1.41 d | 11.50 d | 23 | +1.04 | +0.70 | -0.70 |
-| **JPMorgan / Bank of America** | 0.969 | 0.602 | 1.37 d | 12.97 d | 25 | -0.24 | -0.57 | +0.31 |
-| **Google / Meta** | 0.774 | 0.635 | 1.53 d | 17.68 d | 31 | -0.50 | -0.65 | +0.02 |
-| **Placebo: Coke / Exxon** | 0.499 | 0.684 | 1.83 d | 12.84 d | 26 | -0.41 | -0.56 | +0.51 |
+| **Visa / Mastercard** | **0.000** | 0.448 | 0.86 d | 7.74 d | 28 | -0.70 | -1.15 | -0.05 |
+| **Coca-Cola / PepsiCo** | 0.050 | 0.574 | 1.25 d | 11.57 d | 35 | -1.22 | -1.64 | -0.55 |
+| **Goldman Sachs / Morgan Stanley** | 0.025 | 0.542 | 1.13 d | 11.47 d | 32 | -0.61 | -0.93 | +0.21 |
+| **ExxonMobil / Chevron** | 0.117 | 0.612 | 1.41 d | 11.50 d | 23 | +1.04 | +0.69 | -0.71 |
+| **JPMorgan / Bank of America** | 0.791 | 0.602 | 1.37 d | 12.97 d | 26 | -0.24 | -0.58 | +0.30 |
+| **Google / Meta** | 0.685 | 0.635 | 1.53 d | 17.68 d | 32 | -0.50 | -0.66 | +0.01 |
+| **Placebo: Coke / Exxon** | 0.728 | 0.684 | 1.83 d | 12.67 d | 26 | -0.41 | -0.57 | +0.50 |
 
 ### 2. Static OLS Benchmark (Formation 2018-2023, OOS 2024-Present)
 A static OLS hedge fit on the formation window and traded out-of-sample over 2024+. As shown in the synthetic simulations, a static hedge is optimal if the underlying cointegration relationship is strictly stable.
