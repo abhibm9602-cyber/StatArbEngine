@@ -37,12 +37,9 @@ def get_rolling_stats(spread, window=120):
 def run_diagnostics():
     tickers = ["V", "MA"]
     # Burn in from 2018!
-    data = yf.download(tickers, start="2018-01-01")
+    data = yf.download(tickers, start="2018-01-01", auto_adjust=True)
     if isinstance(data.columns, pd.MultiIndex):
-        try:
-            data = data['Adj Close']
-        except KeyError:
-            data = data['Close']
+        data = data['Close']
     data = data.dropna()
     
     prices = pd.DataFrame({'V': data['V'], 'MA': data['MA']})

@@ -22,12 +22,9 @@ def run_full_fixed_window():
 
     # Download all tickers
     all_tickers = list(set(t for _, (a, b) in pairs for t in (a, b)))
-    data = yf.download(all_tickers, start=start_date, end=end_date)
+    data = yf.download(all_tickers, start=start_date, end=end_date, auto_adjust=True)
     if isinstance(data.columns, pd.MultiIndex):
-        try:
-            data = data['Adj Close']
-        except KeyError:
-            data = data['Close']
+        data = data['Close']
     data = data.dropna()
 
     results = []

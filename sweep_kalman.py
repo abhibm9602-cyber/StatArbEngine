@@ -97,8 +97,8 @@ all_results = []
 
 for pair_name in sweep_pairs:
     tickers = PRESET_PAIRS[pair_name]
-    prices = yf.download(list(tickers), start="2018-01-01", end="2023-12-31", progress=False)
-    prices = prices['Adj Close'] if 'Adj Close' in prices.columns else prices['Close']
+    prices = yf.download(list(tickers), start="2018-01-01", end="2023-12-31", auto_adjust=True, progress=False)
+    prices = prices['Close'] if 'Close' in prices.columns else prices
     prices = prices[list(tickers)].dropna()
     
     print(f"\n--- {pair_name} ---")

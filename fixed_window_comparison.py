@@ -10,9 +10,9 @@ def run_fixed_window_comparison():
     print("=" * 65)
     
     # Load Visa/Mastercard (Formation: 2018-2023)
-    data = yf.download(['V', 'MA'], start="2018-01-01", end="2024-01-01")
+    data = yf.download(['V', 'MA'], start="2018-01-01", end="2024-01-01", auto_adjust=True)
     if isinstance(data.columns, pd.MultiIndex):
-        data = data['Adj Close'] if 'Adj Close' in data.columns else data['Close']
+        data = data['Close']
     prices_raw = data.dropna()
     prices = pd.DataFrame({'Y': prices_raw['V'], 'X': prices_raw['MA']})
     

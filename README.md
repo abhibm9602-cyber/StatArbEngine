@@ -1,6 +1,6 @@
 # StatArbEngine
 
-A quantitative Statistical Arbitrage research engine for equities, built using a custom Recursive Least Squares (RLS) Kalman filter in NumPy and exact-transition Maximum Likelihood Estimation (MLE) for Ornstein-Uhlenbeck processes.
+A quantitative Statistical Arbitrage research engine for equities, built using a custom linear State-Space (Kalman / dynamic RLS) filter in NumPy and exact-transition Maximum Likelihood Estimation (MLE) for Ornstein-Uhlenbeck processes.
 
 ## Features & Mathematical Rigor
 

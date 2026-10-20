@@ -21,8 +21,8 @@ oos_results = []
 
 for name, tickers in PRESET_PAIRS.items():
     try:
-        prices = yf.download(list(tickers), start="2018-01-01", end="2026-10-10", progress=False)
-        prices = prices['Adj Close'] if 'Adj Close' in prices.columns else prices['Close']
+        prices = yf.download(list(tickers), start="2018-01-01", end="2026-10-10", auto_adjust=True, progress=False)
+        prices = prices['Close'] if 'Close' in prices.columns else prices
         prices = prices[list(tickers)].dropna()
         
         # Apply frozen Kalman filter

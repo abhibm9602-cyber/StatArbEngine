@@ -9,8 +9,8 @@ import warnings
 warnings.filterwarnings('ignore')
 
 def fetch_data(tickers: List[str], start_date: str, end_date: str) -> pd.DataFrame:
-    data = yf.download(tickers, start=start_date, end=end_date, progress=False)
-    prices = data['Adj Close'] if 'Adj Close' in data.columns else data['Close']
+    data = yf.download(tickers, start=start_date, end=end_date, auto_adjust=True, progress=False)
+    prices = data['Close'] if 'Close' in data.columns else data
     return prices[tickers].dropna()
 
 def check_cointegration(prices: pd.DataFrame) -> Tuple[float, float]:
