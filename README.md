@@ -4,13 +4,13 @@ A quantitative Statistical Arbitrage research engine for equities, built using a
 
 ## Features & Mathematical Rigor
 
-* **Custom NumPy Kalman Filter**: Time-varying hedge ratios computed dynamically on log-prices to ensure noise is scale-free. The tradable spread is defined rigorously as the *posterior state* spread (inclusive of the intercept), avoiding the common pitfall of trading white-noise innovations.
+* **Custom linear State-Space (Kalman / dynamic RLS) filter**: Time-varying hedge ratios computed dynamically on log-prices to ensure noise is scale-free. The tradable spread is defined rigorously as the *posterior state* spread (inclusive of the intercept), avoiding the common pitfall of trading white-noise innovations.
 * **Rolling OLS Baseline**: Benchmarked against a rolling 60-day Ordinary Least Squares beta, fit with its own formation-window OU half-life.
 * **Pre-Specified Formation / Holdout Split**: 
   * Engle-Granger Cointegration and ADF stationarity tests run *only* on the formation window (2018-2023).
   * Out-of-sample (OOS) holdout backtest covers 2024 to present.
 * **Vectorized Mark-to-Market Backtester**:
-  * Strict `shift(2)` execution: signal generated at close $t$, traded at close $t+1$ (a 1-day execution delay).
+  * Strict shift(2) return alignment (pos.shift(2) * daily_ret): signal generated at close t, executed at close t+1 (a 1-day execution delay, vs. shift(1) zero-delay close-to-close execution).
   * Volatility-scaled slippage and realistic basis-point transaction costs on the absolute dollar volume of both legs.
   * *Note on hedge rebalancing*: The dollar hedge ratio ($HR_{dollar}$) changes daily with the price ratio, so the hedge rebalances implicitly. Trading costs on this daily micro-rebalancing are currently ignored.
 
