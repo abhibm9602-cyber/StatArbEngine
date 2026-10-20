@@ -47,7 +47,10 @@ def apply_kalman_filter(prices: pd.DataFrame, V_w_scalar: float = 1e-5, V_e: flo
         K_t = np.dot(P_prior, F.T) / Q_t
         
         theta = theta + K_t * e_t
-        P = P_prior - np.outer(K_t, F) @ P_prior
+        
+        # Joseph stabilized covariance update: guarantees P remains symmetric positive-definite
+        IKF = np.eye(2) - np.outer(K_t, F)
+        P = IKF @ P_prior @ IKF.T + np.outer(K_t, K_t) * V_e
         
         hedge_ratios_elasticity[t] = theta[0]
         intercepts[t] = theta[1]
@@ -94,7 +97,19 @@ def fit_ou_process_mle(spread: pd.Series) -> OUParams:
         nll = 0.5 * np.log(2 * np.pi * variance) + ((y - expected) ** 2) / (2 * variance)
         return np.sum(nll)
 
-    res = minimize(ou_nll, x0=[1.0, np.mean(spread), np.std(spread)], bounds=((1e-5, None), (None, None), (1e-5, None)), method='L-BFGS-B')
+    # Closed-form AR(1) warm-start for mean-reversion speed (theta)
+    var_x = np.var(x)
+    cov_xy = np.cov(x, y)[0, 1] if len(x) > 1 else 0.0
+    phi_est = cov_xy / var_x if var_x > 1e-12 else 0.5
+    phi_clamped = np.clip(phi_est, 0.01, 0.999)
+    theta_init = float(-np.log(phi_clamped) / dt)
+
+    res = minimize(
+        ou_nll,
+        x0=[theta_init, float(np.mean(spread)), max(1e-4, float(np.std(spread)))],
+        bounds=((1e-5, None), (None, None), (1e-5, None)),
+        method='L-BFGS-B'
+    )
     return OUParams(theta=res.x[0], mu=res.x[1], sigma=res.x[2], kappa=res.x[0])
 
 @dataclass
@@ -122,7 +137,7 @@ def backtest_vectorized(prices: pd.DataFrame, spread: pd.Series, raw_half_life: 
     signals[(z_scores > -exit_z) & (z_scores < exit_z)] = 0
     target_position = signals.ffill().fillna(0)
     
-    # Execution delay
+    # Execution delay: actual_position is the position held during day t's close-to-close return
     actual_position = target_position.shift(delay).fillna(0)
     
     diff_a, diff_b = prices.iloc[:, 0].diff(), prices.iloc[:, 1].diff()
@@ -130,11 +145,20 @@ def backtest_vectorized(prices: pd.DataFrame, spread: pd.Series, raw_half_life: 
     gross_mtm_pnl = actual_position * daily_spread_pnl
     trades = actual_position.diff().fillna(0)
     
+    # Volatility-scaled slippage
     rolling_vol = spread.rolling(20).std() / spread.expanding().std()
     rolling_vol = rolling_vol.fillna(1.0)
-    
     total_friction_bps = (transaction_bps + (base_slippage_bps * rolling_vol)) / 10000.0
-    friction_cost = abs(trades) * (prices.iloc[:, 1] + hedge_ratios.shift(2) * prices.iloc[:, 0]) * total_friction_bps
+    
+    # Execution timing hygiene: A trade entering the portfolio for holding period [t-1 -> t]
+    # executed at close t-1. Therefore, execution notional and friction are evaluated at close t-1 (shift(1)).
+    exec_price_y = prices.iloc[:, 1].shift(1)
+    exec_price_x = prices.iloc[:, 0].shift(1)
+    exec_hr = hedge_ratios.shift(delay).abs()
+    gross_dollar_notional = exec_price_y + (exec_hr * exec_price_x)
+    exec_friction = total_friction_bps.shift(1)
+    
+    friction_cost = (abs(trades) * gross_dollar_notional * exec_friction).fillna(0)
     
     net_daily_pnl = gross_mtm_pnl - friction_cost
     

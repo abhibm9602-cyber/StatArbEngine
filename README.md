@@ -11,7 +11,7 @@ A quantitative Statistical Arbitrage research engine for equities, built using a
   * Out-of-sample (OOS) holdout backtest covers 2024 to present.
 * **Vectorized Mark-to-Market Backtester**:
   * Strict shift(2) return alignment (pos.shift(2) * daily_ret): signal generated at close t, executed at close t+1 (a 1-day execution delay, vs. shift(1) zero-delay close-to-close execution).
-  * Volatility-scaled slippage and realistic basis-point transaction costs on the absolute dollar volume of both legs.
+  * Volatility-scaled slippage and realistic basis-point transaction costs on the absolute dollar volume of both legs: the baseline "3bps" scenario in tables parameterizes 3 bps fixed fee plus 3 bps base volatility-scaled slippage ($\approx 6\text{ bps}$ one-way / $\approx 12\text{ bps}$ round-trip total friction on gross notional).
   * *Note on hedge rebalancing*: The dollar hedge ratio ($HR_{dollar}$) changes daily with the price ratio, so the hedge rebalances implicitly. Trading costs on this daily micro-rebalancing are currently ignored.
 
 ---
@@ -50,7 +50,7 @@ A static OLS hedge fit on the formation window and traded out-of-sample over 202
 
 These results echo the Kalman sweep: the maximum Sharpe is +0.79 (just over 1 SE), while most pairs—including the highly integrated Visa/Mastercard—sit solidly in the negative. With the synthetic tests showing that static OLS perfectly captures a stable structural edge, its failure to do so here provides a much stronger null result that there is simply no tradable edge in these pairs.
 
-*(Note: Under a Bonferroni correction for 7 hypotheses, the significance threshold is $\alpha \approx 0.05 / 7 \approx 0.007$. Only V/MA is statistically cointegrated in the formation window. OOS Sharpe standard error over the ~2.5 year window is approx $\pm0.6$. The -1.64 Sharpe for KO/PEP is ~2.7 standard errors below zero, meaning it is significantly negative.)*
+*(Note: The "3bps Sharpe" column reflects the baseline parameterization of `transaction_bps = 3.0` plus `base_slippage_bps = 3.0` (volatility-scaled), charging ~6 bps one-way / ~12 bps round-trip on total gross notional volume. Under a Bonferroni correction for 7 hypotheses, the significance threshold is $\alpha \approx 0.05 / 7 \approx 0.007$. Only V/MA is statistically cointegrated in the formation window. OOS Sharpe standard error over the ~2.5 year window is approx $\pm0.6$. The -1.64 Sharpe for KO/PEP is ~2.7 standard errors below zero, meaning it is significantly negative.)*
 
 ---
 
