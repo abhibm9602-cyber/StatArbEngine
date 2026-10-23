@@ -1,6 +1,10 @@
 # StatArbEngine
 
+[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://statarbengine-fi9c3msqvxy7yebajshazr.streamlit.app/)
+
 A quantitative Statistical Arbitrage research engine for equities, built using a custom linear State-Space (Kalman / dynamic RLS) filter in NumPy and exact-transition Maximum Likelihood Estimation (MLE) for Ornstein-Uhlenbeck processes.
+
+👉 **Live Interactive Simulation Dashboard:** [statarbengine-fi9c3msqvxy7yebajshazr.streamlit.app](https://statarbengine-fi9c3msqvxy7yebajshazr.streamlit.app/)
 
 ## Features & Mathematical Rigor
 
